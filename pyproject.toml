@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "eden_gateway"
+version = "0.1.0"
+description = "Gateway and weight control for Eden subnet 10"
+authors = ["Richard <bakobiibizo@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+uvicorn = "^0.29.0"
+loguru = "^0.7.2"
+fastapi = "^0.111.0"
+httpx = "^0.27.0"
+
+[[tool.poetry.source]]
+name = "url"
+url = "https://github.com/agicommies/communex@6064aaced6e0f25998adac64142ba025aa7c5ddf#egg=co"
+priority = "primary"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
