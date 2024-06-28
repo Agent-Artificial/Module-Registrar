@@ -7,6 +7,7 @@ subprocess.run(["pip", "install", "loguru"], check=True)
 
 from loguru import logger
 
+
 def install_cuda():
     commands = """
 #!/bin/bash
@@ -25,7 +26,8 @@ sudo apt-get -y install cuda-toolkit-12-3
     if cuda:
         subprocess.run([commands], check=True, shell=True)
     return cuda
-    
+
+
 install_cuda()
 
 install_whisper_sh = """#!/bin/bash
@@ -160,17 +162,20 @@ inference_types.write_text(json.dumps(json_data))
 
 
 file_paths = {
-    "install_whisper_sh": Path("eden_bittensor_subnet/modules/whisper/install_whisper.sh"),
+    "install_whisper_sh": Path(
+        "eden_bittensor_subnet/modules/whisper/install_whisper.sh"
+    ),
     "example_sh": Path("eden_bittensor_subnet/modules/whisper/example.sh"),
     "convert_file_py": Path("eden_bittensor_subnet/modules/whisper/convert_file.py"),
-    "whisper_py": Path("eden_bittensor_subnet/modules/whisper/whisper.py")
+    "whisper_py": Path("eden_bittensor_subnet/modules/whisper/whisper.py"),
 }
 data = {
     "install_whisper_sh": install_whisper_sh,
     "example_sh": example_sh,
     "convert_file_py": convert_file_py,
-    "whisper_py": whisper_py
+    "whisper_py": whisper_py,
 }
+
 
 def write_file(file_data: str, file_path: str) -> None:
     logger.debug(f"\\nfile_data: {file_data}\\nfile_path: {file_path}\\n")
@@ -182,4 +187,6 @@ for key in file_paths.keys():
     write_file(data[key], file_paths[key])
     logger.debug(f"\\nfile: {file_paths[key]}\\n")
 
-subprocess.run(["bash", "eden_bittensor_subnet/modules/whisper/install_whisper.sh"], check=True)
+subprocess.run(
+    ["bash", "eden_bittensor_subnet/modules/whisper/install_whisper.sh"], check=True
+)
