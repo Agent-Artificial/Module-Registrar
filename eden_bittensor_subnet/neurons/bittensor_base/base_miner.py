@@ -21,16 +21,15 @@ import torch
 import asyncio
 import threading
 import traceback
-import os
+from abc import ABC, abstractmethod
 
 import bittensor as bt
 
 from eden_bittensor_subnet.neurons.bittensor_base.base_neuron import BaseNeuron
-from transcription.miner.model import ModelTrainer
-from transcription.utils.misc import update_repository
+from eden_bittensor_subnet.utilities.update_repository import update_repository
 
 
-class BaseMinerNeuron(BaseNeuron):
+class BaseMinerNeuron(BaseNeuron, ABC):
     """
     Base class for Bittensor miners.
     """
@@ -62,7 +61,7 @@ class BaseMinerNeuron(BaseNeuron):
         self.axon = bt.axon(wallet=self.wallet, config=self.config)
 
         # Attach determiners which functions are called when servicing a request.
-        bt.logging.info(f"Attaching forward function to miner axon.")
+        bt.logging.info("Attaching forward function to miner axon.")
         self.axon.attach(
             forward_fn=self.forward,
             blacklist_fn=self.blacklist,
@@ -146,36 +145,20 @@ class BaseMinerNeuron(BaseNeuron):
         except Exception as e:
             bt.logging.error(traceback.format_exc(e))
 
+    @abstractmethod
     def run_in_background_thread(self):
         """
         Starts the miner's operations in a separate background thread.
         This is useful for non-blocking operations.
         """
-        trainer = ModelTrainer(self.config)
 
-        if not self.is_running:
-            bt.logging.debug("Starting miner in background thread.")
-            self.should_exit = False
-            self.thread = threading.Thread(target=self.run, daemon=True)
-            self.thread.start()
-
-            self.trainingTread = threading.Thread(target=trainer.train, daemon=True)
-            self.trainingTread.start()
-
-            self.is_running = True
-            bt.logging.debug("Started")
-
+    @abstractmethod
     def stop_run_thread(self):
         """
         Stops the miner's operations that are running in the background thread.
         """
-        if self.is_running:
-            bt.logging.debug("Stopping miner in background thread.")
-            self.should_exit = True
-            self.thread.join(5)
-            self.is_running = False
-            bt.logging.debug("Stopped")
 
+    @abstractmethod
     def __enter__(self):
         """
         Starts the miner's operations in a background thread upon entering the context.
