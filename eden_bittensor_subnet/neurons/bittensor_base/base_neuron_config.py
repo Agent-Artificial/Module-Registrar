@@ -27,20 +27,6 @@ def check_config(cls, config: "bt.Config"):
     r"""Checks/validates the config namespace object."""
     bt.logging.check_config(config)
 
-    full_path = os.path.expanduser(
-        "{}/{}/{}/netuid{}/{}".format(
-            config.logging.logging_dir,
-            config.wallet.name,
-            config.wallet.hotkey,
-            config.netuid,
-            config.neuron.name,
-        )
-    )
-    print("full path:", full_path)
-    config.neuron.full_path = os.path.expanduser(full_path)
-    if not os.path.exists(config.neuron.full_path):
-        os.makedirs(config.neuron.full_path, exist_ok=True)
-
     if not config.neuron.dont_save_events:
         # Add custom event logger for the events.
         logger.level("EVENTS", no=38, icon="📝")
@@ -66,7 +52,7 @@ def add_args(cls, parser):
     neuron_type = "validator" if "miner" not in cls.__name__.lower() else "miner"
 
     parser.add_argument(
-        "--neuron.name",
+        "--name",
         type=str,
         help="Trials for this neuron go in neuron.root / (wallet_cold - wallet_hot) / neuron.name. ",
         default=neuron_type,

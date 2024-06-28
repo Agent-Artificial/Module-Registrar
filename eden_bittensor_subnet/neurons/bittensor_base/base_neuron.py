@@ -37,13 +37,13 @@ from eden_bittensor_subnet.utilities.time_to_live_cache import ttl_get_block
 class Float64:
     def __float64__(self):
         self.__setattr__("dtype", float64)
-        
+
         
 class Int64:
     def __int64__(self):
         self.__setattr__("dtype", int64)
-        
-        
+
+
 class NDArray:
     def __np_ndarray__(self):
         self.__setattr__("dtype", np_ndarray_int64)
@@ -92,10 +92,10 @@ class BaseNeuron(ABC):
     subtensor: "bt.subtensor"
     wallet: "bt.wallet"
     metagraph: "bt.metagraph"
-    spec_version: int = __spec_version__
-    uids: Union[List[Union[int, Int64]], LongTensor, NDArray[Int64]] = LongTensor([])
-    weights: Union[List[Union[float, Float64]], FloatTensor, NDArray[Float64]] = FloatTensor([])
-    netuid: int = 0
+    spec_version: int 
+    uids: Union[List[Union[int, Int64]], LongTensor, NDArray[Int64]] 
+    weights: Union[List[Union[float, Float64]], FloatTensor, NDArray[Float64]] 
+    netuid: int 
 
     @property
     def block(self):
@@ -149,18 +149,13 @@ class BaseNeuron(ABC):
     @abstractmethod
     def run(self):
         """Serves the miner in the main loop via api"""
-        
+    
+    @abstractmethod
     def resync_metagraph(self):
-        """
-        Syncronizes the network metagraph state with the network at the current block.
-        """
-        self.metagraph.sync(self.block)
+        """Syncronizes the network metagraph state with the network at the current block."""
         
     def set_weights(self) -> None:
-        """
-        Votes for the miners on the subnets by setting the weights, or scores of the miners based on their performance. 
-        """
-        self.subtensor.set_weights(self.wallet, self.netuid, self.uids, self.weights)
+        """Votes for the miners on the subnets by setting the weights, or scores of the miners based on their performance."""
 
     def sync(self):
         """

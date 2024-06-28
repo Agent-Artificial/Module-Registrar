@@ -118,32 +118,3 @@ def ttl_get_block(self) -> int:
     """
     return self.subtensor.get_current_block()
 
-'''
-Check if the repository is up to date
-'''
-def update_repository():
-    bt.logging.info("checking repository updates")
-    try:
-        subprocess.run(["git", "pull"], check=True)
-    except subprocess.CalledProcessError:
-        bt.logging.error("Git pull failed")
-        return False
-
-    here = os.path.abspath(os.path.dirname(__file__))
-    parent_dir = os.path.dirname(here) 
-    init_file_path = os.path.join(parent_dir, '__init__.py')
-    
-    with codecs.open(init_file_path, encoding='utf-8') as init_file:
-        version_match = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]", init_file.read(), re.M)
-        if version_match:
-            new_version = version_match.group(1)
-            bt.logging.success(f"current version: {transcription.__version__}, new version: {new_version}")
-            if transcription.__version__ != new_version:
-                try:
-                    # subprocess.run(["python3", "transcription/utils/download.py"], check=True)
-                    subprocess.run(["python3", "-m", "pip", "install", "-e", "."], check=True)
-                    os._exit(1)
-                except subprocess.CalledProcessError:
-                    bt.logging.error("Pip install failed")
-        else:
-            bt.logging.info("No changes detected!")
