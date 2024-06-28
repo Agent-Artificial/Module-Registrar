@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "eden-bittensor-subnet"
+version = "0.1.0"
+description = ""
+authors = ["Richard <bakobiibizo@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+loguru = "^0.7.2"
+communex = "^0.1.32"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
