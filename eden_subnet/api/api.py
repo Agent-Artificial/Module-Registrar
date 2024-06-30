@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Union, Any, Tuple
 
-from eden_subnet.api.data_models import KeyRequest
+from eden_subnet.api.commune.data_models import KeyRequest
 
 
 app = FastAPI()

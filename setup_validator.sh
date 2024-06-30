@@ -14,9 +14,10 @@ else
     echo "NVM is already installed."
 fi
 
-python venv .venv 
+echo "Installing dependencies"
+python -m venv .venv 
 source .venv/bin/activate
-python -m pip isntall --ugprade pip
+python -m pip install --upgrade pip
 pip install setuptools wheel
 pip install -r requirements.txt
 
@@ -25,9 +26,11 @@ pip install -r requirements.txt
 
 # Function to check if a command exists
 command_exists() {
+    echo "Checking if $1 exists..."
     command -v "$1" >/dev/null 2>&1
 }
 
+echo "Checking for required tools"
 # Check for required tools
 for cmd in jq comx; do
     if ! command_exists "$cmd"; then
@@ -36,8 +39,8 @@ for cmd in jq comx; do
     fi
 done
 
-# Create .env file if it doesn't exist
-touch .env
+echo "Checking for .env file"
+# Create .env file if it doesn't existtouch .env
 
 # Function to add or update .env entries
 update_env() {
@@ -66,8 +69,6 @@ VALIDATOR_NAME=${VALIDATOR_NAME:-eden.Validator_1}
 
 update_env "VALIDATOR_NAME" "$VALIDATOR_NAME"
 
-source .env
-
 echo "Creating key: $VALIDATOR_NAME"
 
 if ! OUTPUT=$(comx key create "$VALIDATOR_NAME"); then
@@ -75,13 +76,10 @@ if ! OUTPUT=$(comx key create "$VALIDATOR_NAME"); then
     exit 1
 fi
 
-VALIDATOR_SS58_KEY=$(echo "$OUTPUT" | grep -oP "Generated key with public address '\K[^']+")
+echo "$OUTPUT"
 
-update_env "VALIDATOR_SS58_KEY" "$VALIDATOR_SS58_KEY"
+KEY_PATH="$HOME/.commune/key/$VALIDATOR_NAME.json"
 
-echo "Setting private key"
-
-KEY_PATH="$HOME/.commune/key/$VALIDATOR_NAME"
 if [ ! -f "$KEY_PATH" ]; then
     echo "Error: Key file not found at $KEY_PATH"
     exit 1
@@ -91,9 +89,18 @@ JSON_STRING=$(cat "$KEY_PATH")
 STRING=$(echo "$JSON_STRING" | jq -r ".data")
 JSON=$(echo "$STRING" | jq ".")
 
-PRIVATE_KEY=$(echo "$JSON" | jq -r .privateKey)
+VALIDATOR_SS58_KEY=$(echo "$JSON" | jq -r .ss58_address)
+
+update_env "VALIDATOR_SS58_KEY" "$VALIDATOR_SS58_KEY"
+
+echo "Setting private key"
+
+PRIVATE_KEY=$(echo "$JSON" | jq -r .private_key)
 update_env "VALIDATOR_PRIVATE_KEY" "$PRIVATE_KEY"
 
+# Print the contents of .env for verification
+echo "Contents of .env file:"
+cat .env
 echo "Creating Query Maps"
 
 # Create directories

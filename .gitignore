@@ -1,1 +1,6 @@
 .venv
+.gitignore
+*.json
+.env
+__pycache__
+data
