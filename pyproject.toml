@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "eden-bittensor-subnet"
+name = "eden_subnet"
 version = "0.1.0"
 description = ""
 authors = ["Richard <bakobiibizo@gmail.com>"]

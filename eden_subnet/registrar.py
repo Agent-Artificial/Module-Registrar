@@ -64,10 +64,18 @@ class ModuleRegistrar:
             script.write("subprocess.run(['python', 'eden_bittensor_subnet/modules/whisper/install_whisper.py'], check=True)\n")
 
 
+def test_save_module():
+    registrar = ModuleRegistrar()
+    speech2text_path = "eden_bittensor_subnet/modules/whisper/speech2text_module.py"
+    with open(speech2text_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+        encoded_content = base64.b64encode(content.encode('utf-8')).decode('utf-8')
+        registrar.register("speech2text", encoded_content)
+
+    registrar.save_modules()
+
+
 if __name__ == "__main__":
-    registrar = ModuleRegistrar("eden_bittensor_subnet/modules/registry/module_registry.json")
-    folder_to_walk = "eden_bittensor_subnet/modules/whisper"
-    output_script = "eden_bittensor_subnet/modules/whisper/setup_whisper.py"
+    registrar = ModuleRegistrar()
+    registrar.generate_script(folder_path="eden_bittensor_subnet/modules/whisper", output_script_name="eden_bittensor_subnet/modules/whisper/setup_whisper.py")
     
-    registrar.generate_script(folder_to_walk, output_script)
-    print(f"Script '{output_script}' has been generated.")

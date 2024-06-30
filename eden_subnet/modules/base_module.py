@@ -6,7 +6,4 @@ class BaseModule:
     @abstractmethod
     async def process(self, url: str) -> Any:
         """Process a request made to the module."""
-        
 
-
-        

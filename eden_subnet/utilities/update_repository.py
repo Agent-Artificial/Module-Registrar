@@ -3,7 +3,7 @@ import subprocess
 import os
 import re
 import codecs
-from eden_bittensor_subnet import __version__
+from eden_subnet import __version__
 
 
 def update_repository():

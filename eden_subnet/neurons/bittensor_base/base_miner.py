@@ -25,8 +25,8 @@ from abc import ABC, abstractmethod
 
 import bittensor as bt
 
-from eden_bittensor_subnet.neurons.bittensor_base.base_neuron import BaseNeuron
-from eden_bittensor_subnet.utilities.update_repository import update_repository
+from eden_subnet.neurons.bittensor_base.base_neuron import BaseNeuron
+from eden_subnet.utilities.update_repository import update_repository
 
 
 class BaseMinerNeuron(BaseNeuron, ABC):

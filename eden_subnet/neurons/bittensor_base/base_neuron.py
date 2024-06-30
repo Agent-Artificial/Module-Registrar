@@ -29,9 +29,9 @@ from abc import ABC, abstractmethod
 from torch import LongTensor, int64, float64, FloatTensor
 from pandas._typing import np_ndarray_int64
 
-from eden_bittensor_subnet.neurons.bittensor_base.base_neuron_config import check_config, config, add_args
-from eden_bittensor_subnet import __spec_version__
-from eden_bittensor_subnet.utilities.time_to_live_cache import ttl_get_block
+from eden_subnet.neurons.bittensor_base.base_neuron_config import check_config, config, add_args
+from eden_subnet import __spec_version__
+from eden_subnet.utilities.time_to_live_cache import ttl_get_block
 
 
 class Float64:
