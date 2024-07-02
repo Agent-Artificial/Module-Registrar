@@ -1,37 +1,66 @@
 import os
+import json
 import jsonpickle
 import base64
+from pathlib import Path
+from api.routes.subnet_routes import get
 
 
 class ModuleRegistrar:
-    def __init__(self, storage_path='eden_bittensor_subnet/modules/registry/module_registry.json'):
-        self.modules = {}
+    def __init__(self, storage_path='module_registrar/modules/registry/module_registry.json'):
         self.storage_path = storage_path
+        self.registry = json.loads(storage_path.read_text()) if os.path.exists(storage_path) else {}
         self.load_modules()
+        self.ignore_list = (".venv", "data", ".", "__py", "node_modules")
 
-    def register(self, name, module_class):
-        self.modules[name] = module_class
+    def register(self, name, module_path):
+        module_path = Path(module_path)
+        self.registry[name] = json.loads(jsonpickle.encode(module_path.read_text(encoding="utf-8")))
         self.save_modules()
+    
+    def validate_module(self, module_name: str):
+        return self.registry[module_name] if module_name in self.registry else False
+        
+    def save_modules(self):
+        with open(self.storage_path, "w", encoding="utf-8") as f:
+            f.write(json.dumps(self.registry, indent=4))
 
     def get(self, name):
-        return self.modules.get(name)
-
-    def save_modules(self):
-        serialized = jsonpickle.encode(self.modules)
-        with open(self.storage_path, 'w', encoding='utf-8') as f:
-            f.write(serialized)
+        return self.registry.get(name)
+            
+    def add_module(self, name, module_path):
+        self.registry[name] = module_path
+        self.save_modules()
+        
+    def update_module(self, name, module_path):
+        self.registry[name] = module_path
+        self.save_modules()
+        
+    def remove_module(self, name):
+        if name in self.registry:
+            del self.registry[name]
+            self.save_modules()
+    
+    def list_modules(self):
+        return list(self.registry.keys())
 
     def load_modules(self):
         if os.path.exists(self.storage_path):
             with open(self.storage_path, 'r', encoding='utf-8') as f:
                 serialized = f.read()
-            self.modules = jsonpickle.decode(serialized)
+            self.registry = jsonpickle.decode(serialized)
         else:
-            self.modules = {}
+            self.registry = {}
 
     def walk_and_encode(self, folder_path):
         file_data = []
+        
         for root, dirs, files in os.walk(folder_path):
+            if len(dirs) > 0:
+                for dir in dirs:
+                    if dir.startswith(self.ignore_list):
+                        continue
+                    self.walk_and_encode(os.path.join(root, dir))
             for file in files:
                 if file.endswith(('.sh', '.py')):
                     file_path = os.path.join(root, file)
@@ -61,12 +90,12 @@ class ModuleRegistrar:
             script.write("    with open(full_path, 'wb') as f:\n")
             script.write("        f.write(base64.b64decode(encoded_content))\n")
             script.write("    print(f'Created: {full_path}')\n")
-            script.write("subprocess.run(['python', 'eden_bittensor_subnet/modules/whisper/install_whisper.py'], check=True)\n")
+            script.write("subprocess.run(['python', 'module_registrar/modules/whisper/install_whisper.py'], check=True)\n")
 
 
 def test_save_module():
     registrar = ModuleRegistrar()
-    speech2text_path = "eden_bittensor_subnet/modules/whisper/speech2text_module.py"
+    speech2text_path = "module_registrar/modules/whisper/speech2text_module.py"
     with open(speech2text_path, 'r', encoding='utf-8') as f:
         content = f.read()
         encoded_content = base64.b64encode(content.encode('utf-8')).decode('utf-8')
@@ -77,5 +106,5 @@ def test_save_module():
 
 if __name__ == "__main__":
     registrar = ModuleRegistrar()
-    registrar.generate_script(folder_path="eden_bittensor_subnet/modules/whisper", output_script_name="eden_bittensor_subnet/modules/whisper/setup_whisper.py")
+    registrar.generate_script(folder_path="module_registrar/modules/whisper", output_script_name="module_registrar/modules/whisper/setup_whisper.py")
     

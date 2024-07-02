@@ -1,2 +1,8 @@
 communex
 loguru
+jsonpickle
+torch
+torchaudio
+torchvision
+git+https://github.com/huggingface/transformers
+datasets

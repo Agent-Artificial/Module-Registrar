@@ -2,8 +2,8 @@ import time
 from typing import *
 import bittensor as bt
 
-from eden_subnet.neurons.bittensor_base.base_miner import BaseMinerNeuron
-from eden_subnet.neurons.bittensor_base.base_neuron_config import config, check_config
+from module_registrar.neurons.bittensor_base.base_miner import BaseMinerNeuron
+from module_registrar.neurons.bittensor_base.base_neuron_config import config, check_config
 
 
 

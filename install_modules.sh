@@ -20,7 +20,7 @@ pip install loguru
 python -m pip install -r requirements.txt
 
 whisper() {
-    python eden_bittensor_subnet/modules/whisper/setup_whisper.py
+    python module_registrar/modules/whisper/setup_whisper.py
 }
 
 read -p "Do you want to install Whisper? (y/n) " -n 1 -r

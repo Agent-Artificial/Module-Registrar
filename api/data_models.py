@@ -2,12 +2,19 @@ import os
 from pydantic import BaseModel
 from typing import Optional, Union
 from fastapi.templating import Jinja2Templates
+from module_registrar.api.utilites.local_files import open_local_file
+
+from dotenv import load_dotenv
 
 from communex.compat.key import Ss58Address
 
 
+load_dotenv()
+
 JINJA2TEMPLATES = Jinja2Templates(directory="templates")
 JINJA2DOCUMENTS = Jinja2Templates(directory="build")
+
+QUERY_MAPS = 
 
 HOST = str(os.getenv("HOST", "0.0.0.0"))
 PORT = int(str(os.getenv("PORT", "5959")))
