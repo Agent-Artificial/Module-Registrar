@@ -1,6 +1,8 @@
 
 from pydantic import BaseModel
-from typing import List
+from typing import List, Dict
+from importlib import Module
+from pathlib import Path
 
 TOPICS = [
     "The pursuit of knowledge",
@@ -147,11 +149,15 @@ class ValidatorSettings(BaseModel):
     Explanation:
     This class defines a data model for validator settings including attributes like key name, module path, host, and port. Additional settings can be added as needed.
     """
-
-    key_name: str
-    module_path: str
-    host: str
-    port: int
+    module_name: str = "whisper"
+    module_endpoint_url: str = "https://localhost:5959/"
+    module_path: Path = Path("validator/modules/whisper/whisper.py")
+    module_paths: Dict[str, Path] = {}
+    module_endpoints: Dict[str, str] = {}
+    modules: Dict[str, Module] = {}
+    key_name: str = "module"
+    host: str = "0.0.0.0"
+    port: int = 5959
 
 
 class GenerationMessages(BaseModel):
@@ -159,4 +165,11 @@ class GenerationMessages(BaseModel):
     model: str
 
 
-class 
+class MinerRequest(BaseModel):
+    request: GenerationMessages
+    inference_type: str
+
+    class Config:
+        arbitrary_types_allowed = True
+        
+        

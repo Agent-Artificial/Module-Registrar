@@ -4,17 +4,19 @@ import time
 import os
 import requests
 import asyncio
+from importlib import import_module, Module
 import numpy as np
-
 from pathlib import Path
 from loguru import logger
 from dotenv import load_dotenv
 from communex.compat.key import Keypair, classic_load_key
 from communex.client import CommuneClient
 from communex._common import get_node_url
+
 from fastapi.requests import Request
 from scipy.spatial.distance import cosine
 from module_registrar.modules.embeddings.tokenizer import TokenUsage
+from typing import Dict, List, Union, Optional, Tuple, Any
 
 
 from dotenv import load_dotenv
@@ -22,8 +24,8 @@ from dotenv import load_dotenv
 from validator.data_models import (
     Message,
     ValidatorSettings,
+    MinerRequest
 )
-from module_registrar.module_registrar import ModuleRegistrar
 
 load_dotenv()
 
@@ -33,35 +35,80 @@ logger.level("INFO")
 
 
 class Validator:
+    module_name: str
+    module_endpoint_url: str
+    module_path: Path
+    module_paths: Dict[str, Path]
+    module_endpoints: Dict[str, str]
+    modules = Dict[str, Module]
+    settings: ValidatorSettings
+    key_name: str
+    host: str
+    port: int
+    
+    
     def __init__(
         self,
-        key_name: str,
-        module_path: str,
-        host: str,
-        port: int,
         settings: ValidatorSettings,
     ) -> None:
-        self.key_name = key_name or settings.key_name
-        self.module_path = module_path or settings.module_path
-        self.host = host or settings.host
-        self.port = port or settings.port
-        self.settings = settings
+        self.settings =  ValidatorSettings().model_dump()
+        self.module_name = settings.module_name
+        self.module_endpoint_url = settings.module_endpoint_url
+        self.module_path = settings.module_path
+        self.module_paths = settings.module_paths
+        self.module_endpoints = settings.module_endpoints
+        self.modules = settings.modules
+        self.key_name = settings.key_name
+        self.host = settings.host
+        self.port = settings.port
         
-        # Initialize the ModuleRegistrar
-        self.module_registrar = ModuleRegistrar()
-        
-        # Load the appropriate module
-        self.load_module()
 
-    def load_module(self):
-        """
-        Loads the appropriate module based on the module_path.
-        """
-        module_name = os.path.basename(self.module_path).split('.')[0]
-        if module_class := self.module_registrar.get(module_name):
-            self.module = module_class()
+    def init_module(self, module_name: str):
+        module_dir = Path(f"validator/modules/{module_name}/")
+        if not module_dir.exists():
+            module_dir.mkdir(parents=True, exist_ok=True)
+        init_file = module_dir / "__init__.py"
+        if not init_file.exists():
+            init_file.touch()
+        self.module_paths[module_name] = module_dir
+        self.load_module(module_name)
+        self.set_endpoint_url([module_name])
+        self.update_modules([module_name])
+        self.install_modules([module_name])
+        
+        
+    def load_module(self, module_name: str):
+        module_name = module_name.title()
+        if module_name in self.module_paths:
+            self.modules[module_name] = import_module(self.module_endpoints, f"{module_name}Module")
         else:
             raise ValueError(f"Module {module_name} not found in registrar")
+        
+    def install_modules(self, module_names: List[str]):
+        for module_name in module_names:
+            response = requests.get(self.module_endpoints[module_name])
+            if response.status_code == 200:
+                file_data = json.loads(response.text)
+                file_path = Path(f"validator/module/{module_name}/{module_name}.py")
+                init = 
+            
+            
+    def execute_module(self, mining_request: MinerRequest):
+        module = self.modules[mining_request.inference_type]
+        module.process(mining_request.request)
+        
+    def set_endpoint_url(self, module_names: list[str]):
+        self.module_endpoints = {
+            module_names: f"{self.host}:{self.port}/{module_name}" for module_name in module_names
+        }
+        
+        
+    def update_modules(self, module_names: List[str]):
+        if len(module_names) > 0:
+            for module_name in module_names:
+                result = requests.get()
+        
+        
         
     def get_uid(self):
         """
