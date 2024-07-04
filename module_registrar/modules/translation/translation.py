@@ -6,7 +6,8 @@ from pathlib import Path
 from loguru import logger
 from typing import Union, Tuple, List, Dict
 
-from seamless_communication.inference.translator import Translator
+from module_registrar.modules.translation.seamless.src.seamless_communication.inference.translator import Translator, Modality
+from module_registrar.modules.translation.data_models import TARRGET_LANGUAGES, TASK_STRINGS
 
 
 class SeamlessTranslator:
@@ -55,7 +56,6 @@ class SeamlessTranslator:
             device=torch.device(device="cuda:0"),
             dtype=torch.float16,
         )
-        
         
 
     def translation_inference(
@@ -123,3 +123,16 @@ class SeamlessTranslator:
 
             return output_text.absolute(), output_audio.absolute()
 
+
+if __name__ == "__main__":
+    translator = Translator(
+        model_name_or_card="seamlessM4T_V2_large",
+        vocoder_name_or_card="vocoder_36langs",
+        device="torch.device(device='cuda:0')",
+        text_tokenizer="sentencepiece",
+        apply_mintox=False,
+        dtype=torch.float16,
+        input_modality="text",
+        output_modality="text",
+    ).translator.translation_inference(in_file="module_registrar/modules/translation/in/test.wav")
+    

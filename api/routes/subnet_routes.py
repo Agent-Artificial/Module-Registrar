@@ -2,8 +2,8 @@ import inspect
 from fastapi import requests, Request
 from fastapi.routing import APIRouter
 from fastapi.exceptions import HTTPException
-from typing import Dict, Any, Optional, Field
-from pydantic import BaseModel
+from typing import Dict, Any, Optional
+from pydantic import BaseModel, Field
 
 from communex._common import get_node_url
 from communex.client import CommuneClient

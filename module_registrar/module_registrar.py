@@ -3,13 +3,12 @@ import json
 import jsonpickle
 import base64
 from pathlib import Path
-from api.routes.subnet_routes import get
 
 
 class ModuleRegistrar:
     def __init__(self, storage_path='module_registrar/modules/registry/module_registry.json'):
-        self.storage_path = storage_path
-        self.registry = json.loads(storage_path.read_text()) if os.path.exists(storage_path) else {}
+        self.storage_path = Path(storage_path)
+        self.registry = json.loads(self.storage_path.read_text()) if os.path.exists(storage_path) else {}
         self.load_modules()
         self.ignore_list = (".venv", "data", ".", "__py", "node_modules")
 
@@ -29,8 +28,11 @@ class ModuleRegistrar:
         return self.registry.get(name)
             
     def add_module(self, name, module_path):
+        module_path = f"{module_path}/{name}_module.py"
         self.registry[name] = module_path
         self.save_modules()
+        self.generate_script(name, module_path)
+        self.register(name, module_path)
         
     def update_module(self, name, module_path):
         self.registry[name] = module_path
@@ -90,7 +92,7 @@ class ModuleRegistrar:
             script.write("    with open(full_path, 'wb') as f:\n")
             script.write("        f.write(base64.b64decode(encoded_content))\n")
             script.write("    print(f'Created: {full_path}')\n")
-            script.write("subprocess.run(['python', 'module_registrar/modules/whisper/install_whisper.py'], check=True)\n")
+            script.write("subprocess.run(['python', 'module_registrar/modules/{name}/install_{name}.py'], check=True)\n")
 
 
 def test_save_module():
@@ -103,8 +105,37 @@ def test_save_module():
 
     registrar.save_modules()
 
+def cli():
+    registrar = ModuleRegistrar()
+    print("Module Registry: ", registrar.registry)
+    print("Options: ")
+    print("1. Add Module")
+    print("2. Update Module")
+    print("3. Remove Module")
+    print("4. List Modules")
+    print("5. Exit")
+    while True:
+        choice = input("Enter your choice: ")
+        if choice == "1":
+            name = input("Enter the name of the module: ")
+            module_path = f"module_registrar/modules/{name}"
+            registrar.add_module(name, module_path)
+        elif choice == "2":
+            name = input("Enter the name of the module: ")
+            module_path = input("Enter the path of the module: ")
+            registrar.update_module(name, module_path)
+        elif choice == "3":
+            name = input("Enter the name of the module: ")
+            registrar.remove_module(name)
+        elif choice == "4":
+            modules = registrar.list_modules()
+            print("Modules: ", modules)
+        elif choice == "5":
+            break
+        else:
+            print("Invalid choice. Please try again.")
+
 
 if __name__ == "__main__":
-    registrar = ModuleRegistrar()
-    registrar.generate_script(folder_path="module_registrar/modules/whisper", output_script_name="module_registrar/modules/whisper/setup_whisper.py")
+    cli()
     

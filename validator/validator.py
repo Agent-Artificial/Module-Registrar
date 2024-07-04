@@ -4,7 +4,7 @@ import time
 import os
 import requests
 import asyncio
-from importlib import import_module, Module
+from importlib import import_module
 import numpy as np
 from pathlib import Path
 from loguru import logger
@@ -15,7 +15,7 @@ from communex._common import get_node_url
 
 from fastapi.requests import Request
 from scipy.spatial.distance import cosine
-from module_registrar.modules.embeddings.tokenizer import TokenUsage
+from module_registrar.modules.embedding.embedding_module import TokenUsage
 from typing import Dict, List, Union, Optional, Tuple, Any
 
 
@@ -40,7 +40,7 @@ class Validator:
     module_path: Path
     module_paths: Dict[str, Path]
     module_endpoints: Dict[str, str]
-    modules = Dict[str, Module]
+    modules = Dict[str]
     settings: ValidatorSettings
     key_name: str
     host: str
@@ -90,7 +90,6 @@ class Validator:
             if response.status_code == 200:
                 file_data = json.loads(response.text)
                 file_path = Path(f"validator/module/{module_name}/{module_name}.py")
-                init = 
             
             
     def execute_module(self, mining_request: MinerRequest):

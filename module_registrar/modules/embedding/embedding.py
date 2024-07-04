@@ -3,16 +3,16 @@ from tiktoken import Encoding
 from numpy import floating
 from numpy._typing import _64Bit
 from typing import Any, List
-from pydantic import BaseModel, Field
-from module_registrar.modules.embeddings.tokenizer import TokenUsage
+from pydantic import Field
+from .data_models import TokenUsage, BaseModule
 
 
 encoding = tiktoken.get_encoding
 
 
-class TikTokenizer(BaseModel):
+class EmbeddingModule(BaseModule):
     token_usage: TokenUsage = Field(default=TokenUsage)
-    historical_list: List[type(TokenUsage)] = Field(default=list)
+    historical_list: List[TokenUsage] = Field(default=list)
     embedding_function: Encoding = Field(default=encoding)
     __pydantic_fields_set__ = {"token_usage", "historical_list", "embedding_function"}
     __pydantic_extra__ = {"allow_population_by_field_name": True}
@@ -36,7 +36,7 @@ class TikTokenizer(BaseModel):
         """
         super().__init__()
         self.token_usage: TokenUsage = TokenUsage()
-        self.historical_list: List[type(TokenUsage)] = []
+        self.historical_list: List[TokenUsage] = []
         self.embedding_function: Encoding = encoding("cl100k_base")
 
     def remove(self, index) -> TokenUsage:
@@ -66,7 +66,7 @@ class TikTokenizer(BaseModel):
 
         return self.token_usage
 
-    def update(self, total: int, request: int, response: int) -> TokenUsage:
+    def update(self, request: int, response: int) -> TokenUsage:
         """
         Updates the session total, prompt tokens, request tokens, and response tokens with the provided values.
 
@@ -78,10 +78,10 @@ class TikTokenizer(BaseModel):
         Returns:
             str: A message indicating that the update was successful.
         """
-        self.token_usage.total_tokens += total
-        self.token_usage.prompt_tokens = total
-        self.token_usage.request_tokens = request
-        self.token_usage.response_tokens = response
+        self.token_usage.request_tokens = request or 0
+        self.token_usage.response_tokens = response or 0
+        self.token_usage.prompt_tokens = self.token_usage.request_tokens + self.token_usage.response_tokens
+        self.token_usage.total_tokens += self.token_usage.prompt_tokens
         self.historical_list.append(TokenUsage(**self.token_usage.model_dump()))
         return self.token_usage
 
@@ -120,3 +120,13 @@ class TikTokenizer(BaseModel):
         np_embedding1 = np.array(object=embedding1)
         np_embedding2 = np.array(object=embedding2)
         return 1 - distance.cosine(u=np_embedding1, v=np_embedding2)
+
+    def process(self, string: str) -> List[int]:
+        embedding = self.embedding_function.encode(text=string)
+        self.update(request=len(embedding), response=0)
+        return embedding
+    
+    
+if __name__ == '__main__':
+    module = EmbeddingModule()
+    print(module.process("hello world"))

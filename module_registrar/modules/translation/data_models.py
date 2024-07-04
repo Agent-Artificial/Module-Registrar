@@ -1,30 +1,20 @@
 from pydantic import BaseModel
+from typing import Dict, Union, Optional, Any
 from module_registrar.data_models import MinerRequest
+from module_registrar.modules.translation.translation import Modality
+
+import torch
+
 from enum import Enum
 
 
-class ModuleConfig(BaseModel):
-    model_name: str = 
-    device: str
-    max_length: str
-    do_sample: str
-    temperature: str
-    top_k: str
-    no_repeat_ngram_size: str
-    num_beams: str
-    
-class TranslationRequest(MinerRequest):
-    config: ModuleConfig().model_dump()
-
-class TranslationMinerConfig(BaseModel):
-    config: ModuleConfig
-    
 class TASK_STRINGS(Enum):
     speech2text = "s2tt"
     speech2speech = "s2st"
     auto_speech_recognition = "asr"
     text2speech = "t2st"
     text2text = "t2tt"
+
 
 class TARRGET_LANGUAGES(Enum):
     Afrikaans = "af"
@@ -54,14 +44,14 @@ class TARRGET_LANGUAGES(Enum):
     French = "fr"
     WesternFrisia = "fy"
     Irish = "ga"
-    Gaelic= Scottish Gaelic": "gd"
+    Gaelic_Scottish = "gd"
     Galician = "gl"
     Gujarati = "gu"
     Hausa = "ha"
     Hebrew = "he"
     Hindi = "hi"
     Croatian = "hr"
-    Haitian= Haitian Creole": "ht"
+    Haitian_Creole = "ht"
     Hungarian = "hu"
     Armenian = "hy"
     Indonesian = "id"
@@ -73,10 +63,10 @@ class TARRGET_LANGUAGES(Enum):
     Javanese = "jv"
     Georgian = "ka"
     Kazakh = "kk"
-    "CentralKhme=": "km"
+    CentralKhme = "km"
     Kannada = "kn"
     Korean = "ko"
-    Luxembourgish= Letzeburgesch": "lb"
+    Luxembourgish = "lb"
     Ganda = "lg"
     Lingala = "ln"
     Lao = "lo"
@@ -90,19 +80,19 @@ class TARRGET_LANGUAGES(Enum):
     Malay = "ms"
     Burmese = "my"
     Nepali = "ne"
-    Dutch= Flemish": "nl"
+    Dutch_Flemish = "nl"
     Norwegian = "no"
-    "NorthernSoth=": "ns"
-    "Occitan pos= 1500)": "oc"
+    NorthernSoth = "ns"
+    Occitan = "oc"
     Oriya = "or"
-    Panjabi= Punjabi": "pa"
+    Panjabi = "pa"
     Polish = "pl"
-    Pushto= Pashto": "ps"
+    Pushto = "ps"
     Portuguese = "pt"
-    Romanian= Moldavian; Moldovan": "ro"
+    Romanian = "ro"
     Russian = "ru"
     Sindhi = "sd"
-    Sinhala= Sinhalese": "si"
+    Sinhala = "si"
     Slovak = "sk"
     Slovenian = "sl"
     Somali = "so"
@@ -127,4 +117,27 @@ class TARRGET_LANGUAGES(Enum):
     Yoruba = "yo"
     Chinese = "zh"
     Zulu = "zu"
+    
+
+class ModuleConfig(BaseModel):
+    model_name_or_card: Union[str, Any] = "seamlessM4T_V2_large"
+    vocoder_name: str = "vocoder_v2" if model_name_or_card == "seamlessM4T_V2_large" else "vocoder_36langs"
+    device: torch.device = torch.device(device="cuda:0")
+    text_tokenizer: str = model_name_or_card
+    apply_mintox: bool = True,
+    dtype: Union[torch.float16, torch.float32] = torch.float16,
+    input_modality: Optional[Modality] = None,
+    output_modality: Optional[Modality] = None
+
+
+class RequestData(BaseModel):
+    input: str
+    task_string: str
+    target_language: str
+    
+
+class TranslationRequest(MinerRequest):
+    request_data: RequestData
+    inference_type: str = "translation"
+
 

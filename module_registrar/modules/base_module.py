@@ -1,11 +1,7 @@
-from typing import Any
+from typing import Any, Dict
 from abc import ABC, abstractmethod
-from pydantic import BaseModel, Generic, Field, PrivateAttr, TypeVar
-from type import Dict, Path, Module
+from pydantic import BaseModel
 from pathlib import Path
-
-
-T = TypeVar("T")
 
 
 class ModuleConfig(BaseModel):
@@ -14,7 +10,7 @@ class ModuleConfig(BaseModel):
     module_path: Path
     module_paths: Dict[str, Path]
     module_endpoints: Dict[str, str]
-    modules: Dict[str, Module]
+    modules: Dict[str, Dict[str, Any]]
     key_name: str
     host: str
     port: int

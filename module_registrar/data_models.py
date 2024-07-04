@@ -6,3 +6,5 @@ class MinerRequest(BaseModel):
     data: Optional[List[str]]
     model: Optional[str]
     config: Optional[Dict[str, Any]]
+
+
