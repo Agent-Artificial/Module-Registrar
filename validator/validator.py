@@ -15,7 +15,7 @@ from communex._common import get_node_url
 
 from fastapi.requests import Request
 from scipy.spatial.distance import cosine
-from module_registrar.modules.embedding.embedding_module import TokenUsage
+from module_registrar.modules.refembedding.embedding_module import TokenUsage
 from typing import Dict, List, Union, Optional, Tuple, Any
 
 

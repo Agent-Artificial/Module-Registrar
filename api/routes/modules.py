@@ -10,9 +10,6 @@ router = APIRouter()
 registrar = ModuleRegistrar()
 
 
-
-
-
 @router.get("/modules/{module_name}")
 def get_module(module_name: str):
     registrar.validate_module(module_name)

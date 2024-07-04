@@ -13,7 +13,7 @@ class ModuleRegistrar:
         self.ignore_list = (".venv", "data", ".", "__py", "node_modules")
 
     def register(self, name, module_path):
-        module_path = Path(module_path)
+        module_path = Path(f"{module_path}/{name}_module.py")
         self.registry[name] = json.loads(jsonpickle.encode(module_path.read_text(encoding="utf-8")))
         self.save_modules()
     
@@ -28,10 +28,9 @@ class ModuleRegistrar:
         return self.registry.get(name)
             
     def add_module(self, name, module_path):
-        module_path = f"{module_path}/{name}_module.py"
-        self.registry[name] = module_path
+        self.registry[name] = f"{module_path}/{name}_module.py"
         self.save_modules()
-        self.generate_script(name, module_path)
+        self.generate_script(name, module_path, f"{module_path}/setup_{name}.py")
         self.register(name, module_path)
         
     def update_module(self, name, module_path):
@@ -73,7 +72,7 @@ class ModuleRegistrar:
                     file_data.append((relative_path, encoded_content))
         return file_data
 
-    def generate_script(self, folder_path, output_script_name):
+    def generate_script(self, name, folder_path, output_script_name):
         file_data = self.walk_and_encode(folder_path)
 
         with open(output_script_name, 'w', encoding='utf-8') as script:
@@ -92,8 +91,19 @@ class ModuleRegistrar:
             script.write("    with open(full_path, 'wb') as f:\n")
             script.write("        f.write(base64.b64decode(encoded_content))\n")
             script.write("    print(f'Created: {full_path}')\n")
-            script.write("subprocess.run(['python', 'module_registrar/modules/{name}/install_{name}.py'], check=True)\n")
+            script.write(f"subprocess.run(['python', 'module_registrar/modules/{name}/install_{name}.py'], check=True)\n")
 
+    def clean_up(self, module_name, module_path):
+        if os.path.isdir(module_path):
+            for root, dirs, files in os.walk(module_path):
+                for file in files:
+                    if file.startswith(f"install_{module_name}.py"):
+                        continue
+                    os.remove(os.path.join(root, file))
+                for dir in dirs:
+                    os.rmdir(os.path.join(root, dir))
+            os.rmdir(module_path)
+        
 
 def test_save_module():
     registrar = ModuleRegistrar()
@@ -113,6 +123,7 @@ def cli():
     print("2. Update Module")
     print("3. Remove Module")
     print("4. List Modules")
+    print("5. Clean up module")
     print("5. Exit")
     while True:
         choice = input("Enter your choice: ")

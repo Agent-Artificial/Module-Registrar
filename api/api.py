@@ -8,6 +8,7 @@ from loguru import logger
 
 from module_registrar.api.commune.data_models import KeyRequest, JINJA2TEMPLATES
 from api.commune.routes import router as commune_router
+from api.routes.modules import router as module_router
 
 
 app = FastAPI()
@@ -20,6 +21,7 @@ app.add_middleware(
 )
 
 app.add_route("api/v1/comx", commune_router)
+app.add_route("api/v1/modules", module_router)
 
 
 @app.get("/", response_class=HTMLResponse)
