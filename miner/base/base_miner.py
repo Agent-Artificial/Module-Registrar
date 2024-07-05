@@ -4,7 +4,7 @@ from pathlib import Path
 from abc import ABC, abstractmethod
 from pydantic import BaseModel, Field
 from typing import Dict, List, Union, Optional, Any
-from .data_models import Ss58Key, ModuleConfig, MinerConfig, BaseModule, MinerRequest
+from ..data_models import Ss58Key, ModuleConfig, MinerConfig, BaseModule, MinerRequest
 from importlib import import_module
 from fastapi import FastAPI, APIRouter
 from fastapi.middleware.cors import CORSMiddleware

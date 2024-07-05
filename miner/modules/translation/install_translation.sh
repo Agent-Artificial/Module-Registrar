@@ -17,8 +17,6 @@ if [ ! -d "./modules/translation/seamless" ]; then
     pip install ./modules/translation/seamless
 fi
 
-pip install ./modules/translation/seamless
-
 pip install git+https://github.com/huggingface/transformers torch torchaudio torchvision fairseq2
 
 mkdir -p ./modules/translation/in

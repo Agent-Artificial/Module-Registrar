@@ -23,8 +23,8 @@ app.add_middleware(
 
 templates = Jinja2Templates(directory="templates")
 
-app.add_route("/api/v1/comx", commune_router)
-app.add_route("/api/v1/modules/{module_name}", module_router)
+app.include_router(module_router)
+app.include_router(commune_router)
 
 app.mount("/templates", templates, name="templates")
 app.mount("/modules", StaticFiles(directory="modules"), name="modules")
@@ -47,4 +47,4 @@ async def get_html(request: Request):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run("module_registrar.api.api:app", host="0.0.0.0", port=8000, reload=True)

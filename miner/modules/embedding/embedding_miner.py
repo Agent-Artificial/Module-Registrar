@@ -13,10 +13,10 @@ embedding_router = APIRouter()
 load_dotenv()
 
 embedding_module_config = ModuleConfig(
-    module_name="embedding",
-    module_path="miner/modules/embedding",
-    module_url=f"https://raw.githubusercontent.com/Agent-Artificial/eden_bittensor_subnet/main/module_registrar/modules/embedding/setup_embedding.py?token={os.getenv('GITHUB_TOKEN')}",
-    module_endpoint="api/v1/embedding{key_name}"
+    module_name="translation",
+    module_path="modules/translation",
+    module_url=f"http://localhost:8000/modules",
+    module_endpoint="/modules/translation"
 )
 
 embedding_module = BaseModule(embedding_module_config)
@@ -45,6 +45,7 @@ class EmbeddingMiner(BaseMiner):
             config=config,
             router=router
         )
+        self.
         self.init_module(settings)
         
     def process(self, miner_request: MinerRequest):

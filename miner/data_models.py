@@ -59,46 +59,6 @@ class MinerRequest(BaseModel):
     model: Optional[str]
     config: Optional[Dict[str, Any]]
 
-
-class ModuleConfig(BaseModel):
-    module_name: str
-    module_path: str
-    module_endpoint: str
-    module_url: str
-    
-
-class BaseModule(BaseModel):
-    module_settings: ModuleConfig
-    
-    def __init__(self, module_settings: ModuleConfig):
-        self.init_module(module_settings)
-        self.module_settings = module_settings
-        
-    def init_module(self, module_config: ModuleConfig):
-        self.install_module(module_config)
-
-    def get_module(self, module_config: ModuleConfig):
-        return requests.get(module_config.module_url, timeout=30).text
-
-    def save_module(self, module_config: ModuleConfig, module_data):
-        with open(f"{module_config.module_path}/setup_{module_config.module_name}.py", "w", encoding="utf-8") as f:
-            f.write(module_data)
-
-    def setup_module(self, module_config: ModuleConfig):
-        command = f"python {module_config.module_name}/setup_{module_config.module_name}.py"
-        subprocess.run(command, shell=True, check=True)
-        command = f"python {module_config.module_name}/install_{module_config.module_name}.sh"
-        subprocess.run(command, shell=True, check=True)
-
-    def update_module(self, module_config: ModuleConfig):
-        self.install_module(module_config)
-
-    # TODO Rename this here and in `init_module` and `update_module`
-    def install_module(self, module_config):
-        module_data = self.get_module(module_config)
-        self.save_module(module_config, module_data)
-        self.setup_module(module_config)
-        
         
 class MinerConfig(BaseModel):
     key_name: str

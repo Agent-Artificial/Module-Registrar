@@ -1,5 +1,5 @@
 import inspect
-from fastapi import requests, Request
+from fastapi import requests, Request, Depends
 from fastapi.routing import APIRouter
 from fastapi.exceptions import HTTPException
 from typing import Dict, Any, Optional
@@ -10,7 +10,11 @@ from communex.client import CommuneClient
 
 from loguru import logger
 
-commune_router = APIRouter()
+commune_router = APIRouter(
+    prefix="/comx",
+    tags=["comx"],
+    responses={404: {"description": "Not found"}},
+)
 
 comx = CommuneClient(get_node_url())
 
@@ -38,7 +42,7 @@ class FunctionMetadata(BaseModel):
 
 
 @commune_router.get(
-    path="/comx/functions",
+    path="/functions",
     summary="List all get_ functions",
     description="Lists all functions from comx that start with 'get_' along with their arguments.",
 )
@@ -73,7 +77,7 @@ def list_comx_functions():
 
 
 @commune_router.get(
-    path="/comx/{function_name}",
+    path="/{function_name}",
     summary="Dynamic get_ function caller",
     description="Calls any function from comx that starts with 'get_' with the function name and parameters passed as a parameter.",
 )
