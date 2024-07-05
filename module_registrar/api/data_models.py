@@ -14,8 +14,6 @@ load_dotenv()
 JINJA2TEMPLATES = Jinja2Templates(directory="templates")
 JINJA2DOCUMENTS = Jinja2Templates(directory="build")
 
-QUERY_MAPS = 
-
 HOST = str(os.getenv("HOST", "0.0.0.0"))
 PORT = int(str(os.getenv("PORT", "5959")))
 

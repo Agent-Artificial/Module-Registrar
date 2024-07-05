@@ -10,10 +10,9 @@ from communex.client import CommuneClient
 
 from loguru import logger
 
-rotuer = APIRouter()
+commune_router = APIRouter()
 
 comx = CommuneClient(get_node_url())
-router = APIRouter()
 
 
 class QueryParams(BaseModel):
@@ -38,7 +37,7 @@ class FunctionMetadata(BaseModel):
         super().__init__(function=function, arguments=arguments)
 
 
-@router.get(
+@commune_router.get(
     path="/comx/functions",
     summary="List all get_ functions",
     description="Lists all functions from comx that start with 'get_' along with their arguments.",
@@ -73,7 +72,7 @@ def list_comx_functions():
     ]
 
 
-@router.get(
+@commune_router.get(
     path="/comx/{function_name}",
     summary="Dynamic get_ function caller",
     description="Calls any function from comx that starts with 'get_' with the function name and parameters passed as a parameter.",

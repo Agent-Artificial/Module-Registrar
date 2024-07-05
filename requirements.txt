@@ -6,3 +6,8 @@ torchaudio
 torchvision
 git+https://github.com/huggingface/transformers
 datasets
+eth_hash
+pysha3
+mnemonic
+soldiers
+pycryptodome

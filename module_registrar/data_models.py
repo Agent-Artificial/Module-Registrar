@@ -8,3 +8,7 @@ class MinerRequest(BaseModel):
     config: Optional[Dict[str, Any]]
 
 
+class RegistrarConfig(BaseModel):
+    module_name: str
+    target_modules_path: str
+    module_storage_path: str
