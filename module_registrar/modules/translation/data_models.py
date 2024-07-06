@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from typing import Dict, Union, Optional, Any
-from module_registrar.data_models import MinerRequest
-from module_registrar.modules.translation.translation import Modality
+from data_models import MinerRequest
+from modules.translation.translation import Modality
 
 import torch
 

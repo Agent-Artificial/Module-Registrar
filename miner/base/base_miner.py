@@ -1,150 +1,109 @@
+import os
 import json
-import uvicorn
 from pathlib import Path
+from loguru import logger
 from abc import ABC, abstractmethod
+from typing import Dict, Optional, Any
 from pydantic import BaseModel, Field
-from typing import Dict, List, Union, Optional, Any
-from ..data_models import Ss58Key, ModuleConfig, MinerConfig, BaseModule, MinerRequest
-from importlib import import_module
 from fastapi import FastAPI, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from communex.client import CommuneClient
 from communex._common import get_node_url
 from communex.compat.key import Keypair
-from encryption import (
-)
+from data_models import MinerRequest
+from base.base_module import ModuleConfig
 
-
+# Initialize CommuneClient
 comx = CommuneClient(get_node_url())
 
-embedding_router = APIRouter()
+# FastAPI setup
+app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
+class MinerConfig(BaseModel):
+    module_config: ModuleConfig = Field(default_factory=ModuleConfig)
+    miner_key_dict: Dict[str, Any] = Field(default_factory=dict)
+    key_name: str = Field(default="test_miner_1")
 
-class BaseMiner(BaseModel, ABC):
-    key_name: str
-    key_folder_path: str
-    host_address: str
-    external_address: str
-    port: int
-    ss58_address: Optional[str]
-    use_testnet: bool
-    module: BaseModule
-    call_timeout: int
-    miner_keypath: Optional[str]
-    miner_key_dict: Dict[str, str]
-    __pydantic_fields_set__ = {"key_name", "key_folder_path", "host_address", "external_address", "port", "ss58_address", "use_testnet", "module", "call_timeout"}
-    
-    class Config:
-        arbitrary_types_allowed = True
-    
-    def __init__(self, settings: MinerConfig, config: ModuleConfig, router: APIRouter):
-        super().__init__(module_config=config)
-        self.init_module(settings)
+class BaseMiner(ABC):
+    module_config: ModuleConfig = Field(default_factory=ModuleConfig)
+    miner_key_dict: Dict[str, Any] = Field(default_factory=dict)
+    key_name: str = Field(default="test_miner_1")
+    def __init__(self, module_config: ModuleConfig, miner_config: MinerConfig):
+        self.module_config = module_config
+        self.miner_config = miner_config
+        self.router = APIRouter()
 
-    def init_module(self, module_config: ModuleConfig):
-        self.install_module(module_config)
-        
+    def add_route(self, module_name: str):
+        @self.router.post(f"/modules/{module_name}/process")
+        def process_request(request: MinerRequest):
+            return self.process(request)
+        app.include_router(self.router)
 
-    def init_api(self, host_address: str, port: int, router: APIRouter):
-        self.app.add_middleware(
-            CORSMiddleware,
-            allow_origins=["*"],
-            allow_credentials=True,
-            allow_methods=["*"],
-            allow_headers=["*"],
-        )
+    @staticmethod
+    def run_server(host_address: str, port: int):
+        import uvicorn
+        uvicorn.run(app, host=host_address, port=port)
 
-        self.app.add_route("api/v1/process/{key_name}", router)
-                
-        self.server(
-            host_address=host_address,
-            port=port
-        )
+    @staticmethod
+    def get_miner_keys(keypath: Optional[str] = None):
+        keypath = keypath or os.getenv("MINER_KEYPATH")
+        return json.loads(Path(keypath).read_text(encoding="utf-8"))
 
-    def server(self, host_address: str, port: int):
-        uvicorn.run(self.app, host=host_address, port=port)
-        
-    def get_miner_keys(self, key_folder: str):
-        keypath = Path(key_folder).expanduser().resolve(strict=True) or self.miner_keypath
-        return json.loads(keypath.read_text(encoding="utf-8"))        
-    
-    def add_miner_key(
-        self,
-        key_name: str,
-        key_folder_path: str,
-        host_address: str,
-        external_address: str,
-        port: int,
-        ss58_address: Optional[str] = None,
-        use_testnet: bool = False,
-        call_timeout: int = 30,
-        miner_keypath: Optional[str] = None
-    ):
-        miner_config = MinerConfig(
-            key_name=key_name,
-            key_folder_path=key_folder_path,
-            host_address=host_address,
-            external_address=external_address,
-            port=port,
-            ss58_address=ss58_address,
-            use_testnet=use_testnet,
-            call_timeout=call_timeout,
-            miner_key_path=miner_keypath
-        ).model_dump()
-        self.miner_key_dict[key_name] = miner_config  
-        self.miner_keypath.write_text(json.dumps(self.miner_key_dict), encoding="utf-8")
-        
-    def remove_miner_key(self, key_name: str):
-        del self.miner_key_dict[key_name]
-        self.miner_keypath.write_text(json.dumps(self.miner_key_dict), encoding="utf-8")
-        self.miner_key_dict = json.loads(self.miner_keypath.read_text(encoding="utf-8"))
-        
-    def update_miner_key(self, key_name: str, miner_config: MinerConfig):
-        self.miner_key_dict[key_name] = miner_config
-        self.miner_keypath.write_text(json.dumps(self.miner_key_dict), encoding="utf-8")
-        self.miner_key_dict = json.loads(self.miner_keypath.read_text(encoding="utf-8"))
-    
-    def save_miner_keys(self):
-        self.miner_keypath.write_text(json.dumps(self.miner_key_dict), encoding="utf-8")
+    def add_miner_key(self, key_name: str, miner_keypath: Path = Path("data/miner_keys.json")):
+        self.miner_key_dict[key_name] = MinerConfig().model_dump()
+        self._save_miner_keys(miner_keypath)
 
-    def load_miner_keys(self):
-        self.miner_key_dict = json.loads(self.miner_keypath.read_text(encoding="utf-8"))
+    def remove_miner_key(self, key_name: str, miner_keypath: Path):
+        self.miner_key_dict.pop(key_name, None)
+        self._save_miner_keys(miner_keypath)
+
+    def update_miner_key(self, key_name: str, miner_config: MinerConfig, miner_keypath: Path):
+        self.miner_key_dict[key_name] = miner_config.model_dump()
+        self._save_miner_keys(miner_keypath)
+
+    def _save_miner_keys(self, miner_keypath: Path):
+        miner_keypath.write_text(json.dumps(self.miner_key_dict), encoding="utf-8")
+
+    def load_miner_keys(self, miner_keypath: Path):
+        self.miner_key_dict = json.loads(miner_keypath.read_text(encoding="utf-8"))
 
     def get_keypair(self, key_name: str):
-        json_data = json.loads(Path(f"{self.key_folder_path}/{key_name}.json").read_text(encoding='utf-8'))["data"]
+        key_folder_path = Path(self.module_config.key_folder_path)
+        json_data = json.loads((key_folder_path / f"{key_name}.json").read_text(encoding='utf-8'))["data"]
         key_data = json.loads(json_data)
-        private_key = key_data["private_key"]
-        public_key = key_data["public_key"]
-        ss58Key = key_data["ss58_address"]
-        return Keypair(private_key, public_key, ss58Key)
+        return Keypair(key_data["private_key"], key_data["public_key"], key_data["ss58_address"])
 
-    def register_miner(
+    def register_miner(self, key_name: str, external_address: str, port: int, subnet: str, min_stake: int, metadata: str):
+        address = f"{external_address}:{port}"
+        keypair = self.get_keypair(key_name)
+        result = comx.register_module(keypair, key_name, address, subnet, min_stake, metadata)
+        return result.extrinsic
+
+    def serve_miner(
         self,
-        key_name: str,
+        module_name: str, 
+        key_name: str, 
+        host_address: str, 
         external_address: str,
         port: int,
         subnet: str,
         min_stake: int,
-        metadata: str
+        metadata: str,
+        register: bool = False
     ):
-        address = f"{external_address}:{port}"
-        keypair = self.get_keypair(key_name)
-        result = comx.register_module(keypair, key_name, address, subnet, min_stake, metadata)
-        
-        return result.extrinsic
-    
-    def serve_miner(self, key_name: str, host_address: str, port: int):
-        @embedding_router.get(f"/api/v1/process/{key_name}")
-        def process(self, request: MinerRequest):
-            if request.inference_type == "embedding":
-                self.process(request)
-                
-        self.init_api(
-            host_address=host_address,
-            port=port,
-            router=embedding_router
-        )
-        
+        self.add_route(module_name)
+        if register:
+            self.register_miner(key_name, external_address, port, subnet, min_stake, metadata)
+            logger.info(f"Registered {key_name} at {external_address}:{port}")
+        self.run_server(host_address, port)
+
     @abstractmethod
     def process(self, miner_request: MinerRequest) -> Any:
         """Process a request made to the module."""

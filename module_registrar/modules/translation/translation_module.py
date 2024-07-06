@@ -1,38 +1,57 @@
+import os
 import argparse
 import requests
+import torch
+from pydantic import BaseModel, ConfigDict
 
-from ..base_module import BaseModule
-from .data_models import ModuleConfig, TranslationRequest
-from seamless_communication.inference.translator import SeamlessTranslator
+from .data_models import TranslationRequest, TranslationConfig, MinerRequest, BaseModule, ModuleConfig, BaseMiner, MinerConfig, router
+from .translation import SeamlessTranslator
 from typing import Any, Optional
+from dotenv import load_dotenv
+
+load_dotenv()
+
+translation_settings = TranslationConfig()
+translation_settings.module = SeamlessTranslator()
+miner_settings = MinerConfig()
 
 
-class TranslateMiner(BaseModule):
+class TranslationMiner(BaseMiner):
+    module_config: MinerConfig
+    module: BaseModule
+    router: Any
+    
+    def __init__(self, module_config: Optional[TranslationConfig] = None):
+        super().__init__(
+            config=module_config, 
+            router=router
+            )
+        self.module_config = module_config
+        self.module = module_config.module
+        self.router = router
+        self.key_name = module_config.key_name
+        self.key_folder_path = module_config.key_folder_path
+        self.host_address = module_config.host_address
+        self.external_address = module_config.external_address
+        self.call_timeout = module_config.call_timeout
+        self.miner_keypath = module_config.miner_key_path
+        self.port = module_config.port
+        self.ss58_address = module_config.ss58_address
+        self.use_testnet = module_config.use_testnet
 
-    def __init__(self, module_config: Optional[ModuleConfig] = None):
-        super().__init__()
-        self.config = ModuleConfig(**module_config)
-        self.translator = SeamlessTranslator()
-
-    def process(self, url: str, request: TranslationRequest) -> Any:
+    def process(self, request: TranslationRequest) -> Any:
         """Process a request made to the module."""
         if request.inference_type == "translation":
-            result = self.translator.translation_inference(in_file=request.request_data.in_file, task_string=request.request_data.task_string, target_languages=request.request_data.target_language)
-        
-        print(result)
+            return self.module.translation_inference(
+                in_file=request.request_data.in_file,
+                task_string=request.request_data.task_string,
+                target_languages=request.request_data.target_language,
+            )
     
-def parse_arugments():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--keyname", type=str, default="eden.Miner_2")
-    parser.add_argument("--host", type=str, default="0.0.0.0")
-    parser.add_argument("--port", type=int, default=8080)
-    return parser.parse_args()
-
-
-
+    
 if __name__ == "__main__":
+    miner = TranslationMiner(
+        module_config=translation_settings
+        )
 
-    args = parse_arugments()
-    miner = TranslateMiner()
-
-    miner.start_miner_server(args.keyname, args.host, args.port)
+    miner.start_miner_server(translation_settings.host_address, translation_settings.port)

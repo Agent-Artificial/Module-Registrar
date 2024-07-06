@@ -22,7 +22,7 @@ class ModuleRegistrar:
     def __init__(self, module_name, target_modules_path, module_storage_path):
         self.setup_file_paths(module_name, target_modules_path, module_storage_path)
         self.load_registry()
-        self.ignore_list = (".venv", "data", ".", "__py", "node_modules")
+        self.ignore_list = (".venv", "data/", ".", "__py", "node_modules")
         self.init_key(self.key_path)
 
     def setup_file_paths(self, module_name, target_modules_path, module_storage_path):

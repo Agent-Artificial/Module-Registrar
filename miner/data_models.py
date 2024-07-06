@@ -1,7 +1,7 @@
 import json
 import subprocess
 import requests
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Dict, Any, Optional, Union
 from substrateinterface.utils import ss58
 from pathlib import Path
@@ -55,19 +55,6 @@ class Ss58Key:
     
 
 class MinerRequest(BaseModel):
-    data: Optional[Dict[str, Any]]
-    model: Optional[str]
-    config: Optional[Dict[str, Any]]
+    data: Any = Field(default=None)
 
         
-class MinerConfig(BaseModel):
-    key_name: str
-    key_folder_path: str
-    host_address: str
-    external_address: str
-    port: int
-    ss58_address: str
-    use_testnet: bool
-    module: BaseModule
-    call_timeout: int
-    miner_key_path: Optional[str] = None

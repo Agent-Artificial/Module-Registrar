@@ -4,10 +4,10 @@ import torch
 from pathlib import Path
 
 from loguru import logger
-from typing import Union, Tuple, List, Dict
+from typing import Union, Tuple, List, Dict, Optional
 
-from module_registrar.modules.translation.seamless.src.seamless_communication.inference.translator import Translator, Modality
-from module_registrar.modules.translation.data_models import TARRGET_LANGUAGES, TASK_STRINGS
+from modules.translation.seamless.src.seamless_communication.inference.translator import Translator, Modality
+from modules.translation.data_models import TARGET_LANGUAGES, TASK_STRINGS
 
 
 class SeamlessTranslator:
@@ -56,13 +56,16 @@ class SeamlessTranslator:
             device=torch.device(device="cuda:0"),
             dtype=torch.float16,
         )
+        self.task_strings = TASK_STRINGS
+        self.target_languages = TARGET_LANGUAGES
         
 
     def translation_inference(
         self,
         in_file: Union[str, Path],
-        task_string: str = "s2st",
-        target_languages: List[str] = ["eng"],
+        task_string: str = "speech2text",
+        source_langauge: Optional[str] = "english",
+        target_languages: List[str] = ["English"],
     ) -> Tuple[Path, Path] | None:
         """
         Perform translation inference on the given input file.
@@ -86,9 +89,9 @@ class SeamlessTranslator:
             raise FileNotFoundError(f"File {in_file} not found")
 
         input_file = Path(in_file)
-        output_text = Path(f"model/output/{input_file.stem}.txt")
-        output_audio = Path(f"model/output/{input_file.stem}.wav")
-
+        output_text = Path(f"modules/translation/out/{input_file.stem}.txt")
+        output_audio = Path(f"modules/translation/out/{input_file.stem}.wav")
+        
         task_str: str = self.task_strings[task_string]
         if not task_str:
             logger.error("Invalid task string")
@@ -101,11 +104,20 @@ class SeamlessTranslator:
                 logger.error("Invalid target language")
                 raise ValueError("Invalid target language")
 
-            text_output, speech_output = self.translator.predict(
-                input=str(object=in_file),
-                task_str=task_str,
-                tgt_lang=tgt_lang,
-            )
+            if task_str.startswith("t"):
+                text_output, speech_output = self.translator.predict(
+                    input=str(input_file.read_text(encoding="utf-8")),
+                    task_str=task_str,
+                    src_lang=self.target_languages[source_langauge],
+                    tgt_lang=tgt_lang,
+                    )
+            if task_str.startswith("s"):
+                text_output, speech_output = self.translator.predict(
+                    input=str(input_file),
+                    task_str=task_str,
+                    src_lang=self.target_languages[source_langauge],
+                    tgt_lang=tgt_lang,
+                )
             logger.info(f"Translated text in {tgt_lang}: {text_output[0]}")
 
             if speech_output:
@@ -121,18 +133,13 @@ class SeamlessTranslator:
 
             logger.info("Translated target file")
 
-            return output_text.absolute(), output_audio.absolute()
+            return text_output, speech_output
 
 
 if __name__ == "__main__":
-    translator = Translator(
-        model_name_or_card="seamlessM4T_V2_large",
-        vocoder_name_or_card="vocoder_36langs",
-        device="torch.device(device='cuda:0')",
-        text_tokenizer="sentencepiece",
-        apply_mintox=False,
-        dtype=torch.float16,
-        input_modality="text",
-        output_modality="text",
-    ).translator.translation_inference(in_file="module_registrar/modules/translation/in/test.wav")
-    
+    translator = SeamlessTranslator()
+    translator.translation_inference(
+        in_file="modules/translation/in/audio_request.wav",
+        task_string="speech2speech",
+        target_languages=["French"]
+    )

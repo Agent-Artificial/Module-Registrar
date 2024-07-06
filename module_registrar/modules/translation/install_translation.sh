@@ -7,7 +7,7 @@ source ./.venv/bin/activate
 python -m pip install --upgrade pip
 
 pip install setuptools wheel gnureadline
-pip install sndfile ggml-python
+pip install sndfile ggml-python substrate-interface communex loguru
 
 sudo apt-get update && sudo apt-get upgrade -y
 sudo apt-get install libsndfile1-dev -y

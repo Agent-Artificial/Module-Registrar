@@ -2,30 +2,32 @@ import os
 import base64
 import requests
 import subprocess
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List
 from pathlib import Path
 
 class ModuleConfig(BaseModel):
-    module_name: str
-    module_path: str
-    module_endpoint: str
-    module_url: str
+    module_name: str = Field(default="module_name")
+    module_path: str = Field(default="modules/{module_name}")
+    module_endpoint: str = Field(default="/modules/{module_name}")
+    module_url: str = Field(default="http://localhost")
     __pydantic_field_set__ = {"module_name", "module_path", "module_endpoint", "module_url"}
 
 class BaseModule(BaseModel):
-    module_settings: ModuleConfig
-    __pydantic_fields_set__ = {"module_settings"}
+    module_config: ModuleConfig = Field(default_factory=ModuleConfig)
+    __pydantic_fields_set__ = {"module_config"}
     
-    def __init__(self, module_settings: ModuleConfig):
-        self.init_module(module_settings)
-        self.module_settings = module_settings
+    def __init__(self, module_config: ModuleConfig):
+        self.init_module(module_config)
+        self.module_config = module_config
         
     def init_module(self, module_config: ModuleConfig):
+        if os.path.exists(module_config.module_path):
+            return
         if not os.path.exists(module_config.module_path):
             os.makedirs(module_config.module_path)
             self.install_module(module_config)
-            
+        
     def check_public_key(self):
         public_key_path = Path("data/public_key.pub")
         if Path(public_key_path).exists():
@@ -61,12 +63,13 @@ class BaseModule(BaseModel):
         module = requests.get(f"{module_settings.module_url}{module_settings.module_endpoint}").text
         module = self.from_base64(module)
         module_setup_path = Path(f"{module_config.module_path}/setup_{module_config.module_name}.py")
+        self.check_for_existing_module(module_config)
         
         if not os.path.exists("modules"):
             os.makedirs("modules")
         if not os.path.exists(module_config.module_path):
             os.makedirs(module_config.module_path)
-            
+
         with open(module_setup_path, "w", encoding="utf-8") as f:
             f.write(module)
         return module
