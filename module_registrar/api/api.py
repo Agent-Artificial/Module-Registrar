@@ -47,4 +47,4 @@ async def get_html(request: Request):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("module_registrar.api.api:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("module_registrar.api.api:app", host="0.0.0.0", port=4267, reload=True)

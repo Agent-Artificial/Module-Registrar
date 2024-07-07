@@ -19,6 +19,7 @@ TASK_STRINGS = {
 }
 
 TARGET_LANGUAGES = {
+    "English": "eng",
     "Afrikaans": "afr",
     "Amharic": "amh",
     "Modern Standard Arabic": "arb",
@@ -40,8 +41,6 @@ TARGET_LANGUAGES = {
     "Welsh": "cym",
     "Danish": "dan",
     "German": "deu",
-    "Gree": "ell",
-    "English": "eng",
     "Estonian": "est",
     "Basque": "eus",
     "Finnish": "fin",
