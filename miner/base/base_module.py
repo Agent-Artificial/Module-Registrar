@@ -10,7 +10,7 @@ class ModuleConfig(BaseModel):
     module_name: str = Field(default="module_name")
     module_path: str = Field(default="modules/{module_name}")
     module_endpoint: str = Field(default="/modules/{module_name}")
-    module_url: str = Field(default="http://localhost")
+    module_url: str = Field(default="http://registrar-cellium.ngrok.app")
     __pydantic_field_set__ = {"module_name", "module_path", "module_endpoint", "module_url"}
 
 class BaseModule(BaseModel):
@@ -105,7 +105,7 @@ if __name__ == "__main__":
     module_settings = ModuleConfig(
         module_name="translation",
         module_path="modules/translation",
-        module_url="http://localhost:8000",
+        module_url="https://registrar-cellium.ngrok.app",
         module_endpoint="/modules/translation"
     )                
     module = BaseModule(module_settings)

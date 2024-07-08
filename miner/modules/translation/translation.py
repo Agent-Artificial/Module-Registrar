@@ -58,14 +58,27 @@ class SeamlessTranslator:
         )
         self.task_strings = TASK_STRINGS
         self.target_languages = TARGET_LANGUAGES
-        
+    
+    def process(
+        self, 
+        in_file: Union[str, Path],
+        task_string: str = "speech2text",
+        source_language: Optional[str] = "English",
+        target_lanaguages: List[str] = ["French"]
+    ):
+        return self.translation_inference(
+            in_file=in_file,
+            task_string=task_string,
+            source_langauge=source_language,
+            target_languages=target_lanaguages
+        )
 
     def translation_inference(
         self,
         in_file: Union[str, Path],
         task_string: str = "speech2text",
-        source_langauge: Optional[str] = "english",
-        target_languages: List[str] = ["English"],
+        source_langauge: Optional[str] = "English",
+        target_languages: List[str] = ["French"],
     ) -> Tuple[Path, Path] | None:
         """
         Perform translation inference on the given input file.
@@ -133,13 +146,5 @@ class SeamlessTranslator:
 
             logger.info("Translated target file")
 
-            return text_output, speech_output
+            return text_output, output_audio
 
-
-if __name__ == "__main__":
-    translator = SeamlessTranslator()
-    translator.translation_inference(
-        in_file="modules/translation/in/audio_request.wav",
-        task_string="speech2speech",
-        target_languages=["French"]
-    )

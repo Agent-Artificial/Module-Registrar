@@ -59,7 +59,8 @@ class TranslationMiner(BaseMiner):
             task_string=request.data["task_string"]
         )
         if request.data["task_string"].endswith("2speech"):
-            return base64.b64encode(output_audio).decode("utf-8")
+            with open(output_audio, "rb") as f:
+                return base64.b64encode(f.read()).decode("utf-8")
         if request.data["task_string"].endswith("2text"):
             return str(output_text)
 
