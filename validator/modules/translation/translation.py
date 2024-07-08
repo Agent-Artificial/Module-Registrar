@@ -4,13 +4,13 @@ import torch
 from pathlib import Path
 
 from loguru import logger
-from typing import Union, Tuple, List, Dict, Optional
+from typing import Union, Tuple, List, Dict, Optional, Any
 
 from .seamless.src.seamless_communication.inference.translator import Translator
-from .data_models import TARGET_LANGUAGES, TASK_STRINGS
+from .data_models import TARGET_LANGUAGES, TASK_STRINGS, MinerRequest
 
 
-class SeamlessTranslator:
+class Translation:
     """A class for performing translation tasks using a specified model and vocoder.
 
     Attributes:
@@ -58,19 +58,19 @@ class SeamlessTranslator:
         )
         self.task_strings = TASK_STRINGS
         self.target_languages = TARGET_LANGUAGES
-    
+
     def process(
-        self, 
+        self,
         in_file: Union[str, Path],
         task_string: str = "speech2text",
-        source_language: Optional[str] = "English",
-        target_lanaguages: List[str] = ["French"]
+        source_langauge: Optional[str] = "English",
+        target_languages: List[str] = ["English"],
     ):
         return self.translation_inference(
             in_file=in_file,
             task_string=task_string,
-            source_langauge=source_language,
-            target_languages=target_lanaguages
+            source_langauge=source_langauge,
+            target_languages=target_languages,
         )
 
     def translation_inference(
@@ -78,7 +78,7 @@ class SeamlessTranslator:
         in_file: Union[str, Path],
         task_string: str = "speech2text",
         source_langauge: Optional[str] = "English",
-        target_languages: List[str] = ["French"],
+        target_languages: List[str] = ["English"],
     ) -> Tuple[Path, Path] | None:
         """
         Perform translation inference on the given input file.
@@ -147,4 +147,5 @@ class SeamlessTranslator:
             logger.info("Translated target file")
 
             return text_output, speech_output
+
 

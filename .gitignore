@@ -1,7 +1,12 @@
 .venv
-.gitignore
 *.json
-.env
-__pycache__
+*.env
+*__pycache__
 data
-.pem
+*.pem
+*.mp3
+*.wav
+*.mp4
+*.mkv
+*.txt
+seamless

@@ -1,8 +1,8 @@
 
-from pydantic import BaseModel
-from typing import List, Dict
-from importlib import Module
+from pydantic import BaseModel, Field
+from typing import List, Dict, Any, Optional
 from pathlib import Path
+
 
 TOPICS = [
     "The pursuit of knowledge",
@@ -143,21 +143,16 @@ class ConfigDict(BaseModel):
 
 
 class ValidatorSettings(BaseModel):
-    """
-    A class representing validator settings.
-
-    Explanation:
-    This class defines a data model for validator settings including attributes like key name, module path, host, and port. Additional settings can be added as needed.
-    """
-    module_name: str = "whisper"
-    module_endpoint_url: str = "https://localhost:5959/"
-    module_path: Path = Path("validator/modules/whisper/whisper.py")
-    module_paths: Dict[str, Path] = {}
-    module_endpoints: Dict[str, str] = {}
-    modules: Dict[str, Module] = {}
-    key_name: str = "module"
-    host: str = "0.0.0.0"
-    port: int = 5959
+    name: str
+    ss58_address: str
+    keypath: str
+    keyname: str
+    host_address: str
+    external_address: str
+    port: int
+    chain: str
+    use_testnet: bool
+    subnet_list: Optional[List[int]]
 
 
 class GenerationMessages(BaseModel):
@@ -173,3 +168,28 @@ class MinerRequest(BaseModel):
         arbitrary_types_allowed = True
         
         
+CHAIN_CLIENTS = {
+    "communex": "comx",
+    "bittensor": "btcli",
+    "polkadot": "polkadotjs",
+    "olas": "mech_client"
+}
+
+CLIENT_FILES = {
+    "commune": ".venv/lib/python3.10/site-packages/communex",
+    "bittensor": ".bit/lib/python3.10/site-packages/bittensor",
+    "polkadot": "node_modules/polkadotjs",
+    "olas": ".olas/lib/python3.10/site-packages/olas"
+}
+
+
+class MinerRequest(BaseModel):
+    data: Any = Field(default=None)
+    
+    
+class ModuleConfig(BaseModel):
+    module_name: str = Field(default="module_name")
+    module_path: str = Field(default="modules/{module_name}")
+    module_endpoint: str = Field(default="/modules/{module_name}")
+    module_url: str = Field(default="http://localhost")
+    __pydantic_field_set__ = {"module_name", "module_path", "module_endpoint", "module_url"}

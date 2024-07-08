@@ -1,57 +1,83 @@
-import os
-import argparse
-import requests
-import torch
-from pydantic import BaseModel, ConfigDict
-
-from .data_models import TranslationRequest, TranslationConfig, MinerRequest, BaseModule, ModuleConfig, BaseMiner, MinerConfig, router
-from .translation import SeamlessTranslator
-from typing import Any, Optional
+import base64
+from pydantic import Field
 from dotenv import load_dotenv
+
+from .data_models import TranslationRequest, MinerConfig, ModuleConfig, BaseMiner
+from .translation import SeamlessTranslator
+
 
 load_dotenv()
 
-translation_settings = TranslationConfig()
-translation_settings.module = SeamlessTranslator()
-miner_settings = MinerConfig()
+translator = SeamlessTranslator()
 
+
+translation_settings = ModuleConfig(
+    module_path="module/translation",
+    module_name="translation",
+    module_endpoint="/modules/translation",
+    module_url="https://translation.com/"
+)
+
+miner_settings = MinerConfig(
+    module_name=Field(default="translation"),
+    module_path=Field(default="modules/translation"),
+    module_endpoint=Field(default="/modules/translation"),
+    module_url=Field(default="https://translation.com/"),
+    miner_key_dict={
+        "test_miner_1": {
+            "key": "5GN2dLhWa5sCB4A558Bkkh96BNdwwikPxCBJW6HQXmQf7ypR",
+            "name": "test_miner_1",
+            "host": "0.0.0.0",
+            "port": 8000,
+            "keypath": "$HOME/.commune/key/test_miner_1.json"
+        }
+    },
+)
 
 class TranslationMiner(BaseMiner):
-    module_config: MinerConfig
-    module: BaseModule
-    router: Any
     
-    def __init__(self, module_config: Optional[TranslationConfig] = None):
-        super().__init__(
-            config=module_config, 
-            router=router
-            )
-        self.module_config = module_config
-        self.module = module_config.module
-        self.router = router
-        self.key_name = module_config.key_name
-        self.key_folder_path = module_config.key_folder_path
-        self.host_address = module_config.host_address
-        self.external_address = module_config.external_address
-        self.call_timeout = module_config.call_timeout
-        self.miner_keypath = module_config.miner_key_path
-        self.port = module_config.port
-        self.ss58_address = module_config.ss58_address
-        self.use_testnet = module_config.use_testnet
-
-    def process(self, request: TranslationRequest) -> Any:
-        """Process a request made to the module."""
-        if request.inference_type == "translation":
-            return self.module.translation_inference(
-                in_file=request.request_data.in_file,
-                task_string=request.request_data.task_string,
-                target_languages=request.request_data.target_language,
-            )
+    def __init__(self):
+        super().__init__(miner_settings, translation_settings)
+        self.add_route("translation")
     
-    
-if __name__ == "__main__":
-    miner = TranslationMiner(
-        module_config=translation_settings
+    def process(self, request: TranslationRequest):
+        text_request = "modules/translation/in/text_request.txt"
+        audio_request = "modules/translation/in/audio_request.wav"
+        request_path = ""
+        if request.data["task_string"].startswith("speech"):
+            with open(audio_request, "wb") as f:
+                f.write(base64.b64decode(request.data["input"].encode("utf-8")))
+            request_path = audio_request
+        if request.data["task_string"].startswith("text"):
+            with open(text_request, "w", encoding="utf-8") as f:
+                f.write(request.data["input"])
+            request_path = text_request
+        output_text, output_audio = translator.translation_inference(
+            in_file=request_path,
+            source_langauge=request.data["source_language"].title(),
+            target_languages=[request.data["target_language"].title()],
+            task_string=request.data["task_string"]
         )
+        if request.data["task_string"].endswith("2speech"):
+            return base64.b64encode(output_audio).decode("utf-8")
+        if request.data["task_string"].endswith("2text"):
+            return str(output_text)
 
-    miner.start_miner_server(translation_settings.host_address, translation_settings.port)
+
+if __name__ == "__main__":
+    miner = TranslationMiner()
+    # with open("modules/translation/in/german_test_data.wav", "rb") as f:
+    #     audio_data = f.read()
+    # b64audio = base64.b64encode(audio_data).decode("utf-8")
+    # translation_data = TranslationData(
+    #     input=b64audio,
+    #     task_string="speech2text",
+    #     source_language="english",
+    #     target_language="french"
+    # ).model_dump()
+    # translation_request = TranslationRequest(
+    #     data=translation_data
+    # )
+    # result = miner.process(request=translation_request)
+    # print(result)
+    miner.run_server("0.0.0.0", 4269)

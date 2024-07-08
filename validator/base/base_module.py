@@ -6,12 +6,10 @@ from pydantic import BaseModel, Field
 from typing import List
 from pathlib import Path
 
-class ModuleConfig(BaseModel):
-    module_name: str = Field(default="module_name")
-    module_path: str = Field(default="modules/{module_name}")
-    module_endpoint: str = Field(default="/modules/{module_name}")
-    module_url: str = Field(default="http://localhost")
-    __pydantic_field_set__ = {"module_name", "module_path", "module_endpoint", "module_url"}
+from data_models import ModuleConfig
+
+
+
 
 class BaseModule(BaseModel):
     module_config: ModuleConfig = Field(default_factory=ModuleConfig)
@@ -33,14 +31,14 @@ class BaseModule(BaseModel):
         if Path(public_key_path).exists():
             pubkey = Path(public_key_path).read_text(encoding="utf-8")
             print(pubkey)
-            pubkey_input =input("Public key exists. Do you want to overwrite it? (y/n) ")
+            pubkey_input = input("Public key exists. Do you want to overwrite it? (y/n) ")
             if pubkey_input.lower != "y" or pubkey_input != "" or pubkey_input.lower() != "yes":
                 return pubkey
             else:
                 public_key_path.unlink()
 
-    def get_public_key(self, key_name: str = "public_key"):
-        public_key = requests.get(f"{module_settings.module_url}/modules/{key_name}").text
+    def get_public_key(self, key_name: str, public_key_path: Path):
+        public_key = requests.get(f"{self.module_config.module_url}/modules/{key_name}", timeout=30).text
         if not os.path.exists("data"):
             os.makedirs("data")
         self.check_public_key()
@@ -48,7 +46,7 @@ class BaseModule(BaseModel):
             f.write(public_key)
         return public_key
         
-    def check_for_existing_module(self,module_config: ModuleConfig):
+    def check_for_existing_module(self, module_config: ModuleConfig):
         module_setup_path = Path(f"{module_config.module_path}/setup_{module_config.module_name}.py")
         if module_setup_path.exists():
             module = module_setup_path.read_text(encoding="utf-8")
@@ -60,7 +58,7 @@ class BaseModule(BaseModel):
                 self.remove_module(module_config)
                 
     def get_module(self, module_config: ModuleConfig):
-        module = requests.get(f"{module_settings.module_url}{module_settings.module_endpoint}").text
+        module = requests.get(f"{module_config.module_url}{module_config.module_endpoint}", timeout=30).text
         module = self.from_base64(module)
         module_setup_path = Path(f"{module_config.module_path}/setup_{module_config.module_name}.py")
         self.check_for_existing_module(module_config)
@@ -99,8 +97,9 @@ class BaseModule(BaseModel):
     # TODO Rename this here and in `init_module` and `update_module`
     def install_module(self, module_config):
         self.get_module(module_config)
-        self.setup_module(module_config)        
-        
+        self.setup_module(module_config)
+
+
 if __name__ == "__main__":
     module_settings = ModuleConfig(
         module_name="translation",

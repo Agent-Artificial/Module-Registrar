@@ -6,8 +6,8 @@ from pathlib import Path
 from loguru import logger
 from typing import Union, Tuple, List, Dict, Optional
 
-from modules.translation.seamless.src.seamless_communication.inference.translator import Translator, Modality
-from modules.translation.data_models import TARGET_LANGUAGES, TASK_STRINGS
+from .seamless.src.seamless_communication.inference.translator import Translator
+from .data_models import TARGET_LANGUAGES, TASK_STRINGS
 
 
 class SeamlessTranslator:
