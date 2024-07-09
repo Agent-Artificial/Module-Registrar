@@ -46,7 +46,7 @@ class TranslationMiner(BaseMiner):
         request_path = ""
         if request.data["task_string"].startswith("speech"):
             with open(audio_request, "wb") as f:
-                f.write(base64.b64decode(request.data["input"].encode("utf-8")))
+                f.write(request.data["input"])
             request_path = audio_request
         if request.data["task_string"].startswith("text"):
             with open(text_request, "w", encoding="utf-8") as f:
