@@ -198,7 +198,7 @@ class BaseMiner(ABC):
     @staticmethod
     def run_server(host_address: str, port: int):
         import uvicorn
-        uvicorn.run(app, host=host_address, port=port)
+        uvicorn.run("modules.translation.data_models.BaseMiner:app", host=host_address, port=port, reload=True)
 
     @staticmethod
     def get_miner_keys(keypath: Optional[str] = None):
