@@ -19,10 +19,10 @@ translation_settings = ModuleConfig(
 )
 
 miner_settings = MinerConfig(
-    module_name=Field(default="translation"),
-    module_path=Field(default="modules/translation"),
-    module_endpoint=Field(default="/modules/translation"),
-    module_url=Field(default="https://translation.com/"),
+    module_name="translation",
+    module_path="modules/translation",
+    module_endpoint="/modules/translation",
+    module_url="https://translation.com/",
     miner_key_dict={
         "test_miner_1": {
             "key": "5GN2dLhWa5sCB4A558Bkkh96BNdwwikPxCBJW6HQXmQf7ypR",

@@ -7,7 +7,7 @@ import subprocess
 from pathlib import Path
 from loguru import logger
 from pydantic import BaseModel, Field
-from typing import Dict, Union, Optional, Any
+from typing import Dict, Union, Optional, Any, List
 from abc import ABC, abstractmethod
 from fastapi import APIRouter, FastAPI
 from substrateinterface.keypair import Keypair
@@ -133,9 +133,80 @@ TARGET_LANGUAGES = {
 }
 
 
-class MinerRequest(BaseModel):
-    data: Any = Field(default=None)
+class ModuleConfig(BaseModel):
+    module_name: Optional[str] = None
+    module_path: Optional[str] = None
+    module_endpoint: Optional[str] = None
+    module_url: Optional[str] = None
 
+
+class BaseModule(BaseModel):
+    module_config: Optional[ModuleConfig] = None
+    
+    def __init__(self, module_config: ModuleConfig):
+        super().__init__(module_config=module_config)
+        self.module_config = module_config
+        self.init_module()
+        
+    def init_module(self):
+        if not os.path.exists(self.module_config.module_path):
+            os.makedirs(self.module_config.module_path)
+            self.install_module(self.module_config)
+        
+    def _check_and_prompt(self, path: Path, message: str) -> Optional[str]:
+        if path.exists():
+            content = path.read_text(encoding="utf-8")
+            print(content)
+            user_input = input(f"{message} Do you want to overwrite it? (y/n) ").lower()
+            return None if user_input in ['y', 'yes'] else content
+        return None
+
+    def check_public_key(self) -> Optional[str]:
+        public_key_path = Path("data/public_key.pub")
+        return self._check_and_prompt(public_key_path, "Public key exists.")
+
+    def get_public_key(self, key_name: str = "public_key", public_key_path: str = "data/public_key.pem"):
+        public_key = requests.get(f"{self.module_config.module_url}/modules/{key_name}", timeout=30).text
+        os.makedirs("data", exist_ok=True)
+        existing_key = self.check_public_key()
+        if existing_key is None:
+            Path(public_key_path).write_text(public_key, encoding="utf-8")
+        return existing_key or public_key
+        
+    def check_for_existing_module(self) -> Optional[str]:
+        module_setup_path = Path(f"{self.module_config.module_path}/setup_{self.module_config.module_name}.py")
+        return self._check_and_prompt(module_setup_path, "Module exists.")
+                
+    def get_module(self):
+        module = requests.get(f"{self.module_config.module_url}{self.module_config.module_endpoint}", timeout=30).text
+        os.makedirs("modules", exist_ok=True)
+        
+        module_setup_path = Path(f"{self.module_config.module_path}/setup_{self.module_config.module_name}.py")
+        existing_module = self.check_for_existing_module()
+        
+        if existing_module is None:
+            os.makedirs(self.module_config.module_path, exist_ok=True)
+            module_setup_path.write_text(module, encoding="utf-8")
+        return existing_module or module
+
+    def remove_module(self):
+        Path(self.module_config.module_path).rmdir()
+        
+    def save_module(self, module_data: str):
+        Path(f"{self.module_config.module_path}/setup_{self.module_config.module_name}.py").write_text(module_data, encoding="utf-8")
+
+    def setup_module(self):
+        subprocess.run(f"python {self.module_config.module_path}/setup_{self.module_config.module_name}.py", shell=True, check=True)
+
+    def update_module(self, module_config: ModuleConfig):
+        self.install_module(module_config=module_config)
+
+    def install_module(self, module_config: ModuleConfig):
+        self.module_config = module_config
+        self.get_module()
+        self.setup_module()        
+        subprocess.run(f"bash {self.module_config.module_path}/install_{self.module_config.module_name}.sh", shell=True, check=True)
+       
 
 class TranslationConfig(BaseModel):
     model_name_or_card: Union[str, Any] = "seamlessM4T_V2_large"
@@ -157,37 +228,68 @@ class TranslationData(BaseModel):
     task_string: str
     source_language: Optional[str] = None
     target_language: str
-
+    
+    
+class MinerRequest(BaseModel):
+    data: Optional[Any] = None
+    
 
 class TranslationRequest(MinerRequest):
     def __init__(self, data: TranslationData):
         super().__init__()
         self.data = data
-        
-        
-class ModuleConfig(BaseModel):
-    module_name: str = Field(default="module_name")
-    module_path: str = Field(default="modules/{module_name}")
-    module_endpoint: str = Field(default="/modules/{module_name}")
-    module_url: str = Field(default="http://localhost")
-    __pydantic_field_set__ = {"module_name", "module_path", "module_endpoint", "module_url"}
-    
-    
-class MinerConfig(BaseModel):
-    module_config: ModuleConfig = Field(default_factory=ModuleConfig)
-    miner_key_dict: Dict[str, Any] = Field(default_factory=dict)
-    key_name: str = Field(default="test_miner_1")
 
+
+class MinerConfig(BaseModel):
+    miner_name: Optional[str] = None
+    miner_keypath: Optional[str] = None
+    miner_host: Optional[str] = None
+    external_address: Optional[str] = None
+    miner_port: Optional[int] = None
+    stake: Optional[float] = None
+    netuid: Optional[int] = None
+    funding_key: Optional[str] = None
+    funding_modifier: Optional[float] = None
+    module_name: Optional[str] = None
+        
 
 class BaseMiner(ABC):
-    module_config: ModuleConfig = Field(default_factory=ModuleConfig)
-    miner_key_dict: Dict[str, Any] = Field(default_factory=dict)
-    key_name: str = Field(default="test_miner_1")
+    module_config: Optional[ModuleConfig] = None
+    module_configs: Optional[List[MinerConfig]] = []
+    miner_key_dict: Optional[Dict[str, Any]] = {}
+    key_name: Optional[str] = None
+    miners: Optional[Dict[str, Any]] = {}
+    router: Optional[APIRouter] = None
     
     def __init__(self, module_config: ModuleConfig, miner_config: MinerConfig):
         self.module_config = module_config
         self.miner_config = miner_config
+        self.module_configs = self._load_configs("modules/module_configs.json")
+        self.miner_configs = self._load_configs("modules/miner_configs.json")
+        self.miners = self._load_miner_keys()
         self.router = APIRouter()
+
+    def _load_configs(self, file_path: str) -> List[Dict[str, Any]]:
+        path = Path(file_path)
+        if path.exists():
+            return json.loads(path.read_text(encoding="utf-8"))
+        configs = []
+        path.write_text(json.dumps(configs, indent=4), encoding="utf-8")
+        return configs
+
+    def _load_miner_keys(self) -> Dict[str, Any]:
+        key_path = Path("data/instance_data/miner_keys.json")
+        if key_path.exists():
+            return json.loads(key_path.read_text(encoding="utf-8"))
+        
+        self.miner_key_dict = {
+            config["miner_name"]: json.loads(Path(config["miner_keypath"]).read_text(encoding="utf-8"))
+            for config in self.miner_configs
+            if Path(config["miner_keypath"]).exists()
+        }
+        
+        key_path.write_text(json.dumps(self.miner_key_dict, indent=4), encoding="utf-8")
+        return self.miner_key_dict
 
     def add_route(self, module_name: str):
         @self.router.post(f"/modules/{module_name}/process")
@@ -198,16 +300,29 @@ class BaseMiner(ABC):
     @staticmethod
     def run_server(host_address: str, port: int):
         import uvicorn
-        uvicorn.run("modules.translation.data_models.BaseMiner:app", host=host_address, port=port, reload=True)
+        uvicorn.run(app, host=host_address, port=port)
 
-    @staticmethod
-    def get_miner_keys(keypath: Optional[str] = None):
-        keypath = keypath or os.getenv("MINER_KEYPATH")
-        return json.loads(Path(keypath).read_text(encoding="utf-8"))
-
-    def add_miner_key(self, key_name: str, miner_keypath: Path = Path("data/miner_keys.json")):
-        self.miner_key_dict[key_name] = MinerConfig().model_dump()
+    def add_miner_key(self, key_name: str, miner_keypath: Path = Path("data/instance_data/miner_keys.json"), miner_config: Optional[MinerConfig] = None):
+        if miner_config:
+            self.miner_key_dict[key_name] = miner_config.model_dump()
+        else:
+            config = self._prompt_miner_config()
+            self.miner_key_dict[key_name] = config.model_dump()
+        
         self._save_miner_keys(miner_keypath)
+
+    def _prompt_miner_config(self) -> MinerConfig:
+        return MinerConfig(
+            miner_name=input("Enter miner_name: "),
+            miner_keypath=input("Enter miner_keypath [ex. $HOME/.commune/key/my_miner.json]: ") or None,
+            miner_host=input("Enter miner_host [default 0.0.0.0]: ") or "0.0.0.0",
+            external_address=input("Enter external_address: ") or None,
+            miner_port=int(input("Enter miner_port [default 5757]: ") or 5757),
+            stake=float(input("Enter stake [default 275COM]: ") or 275),
+            netuid=int(input("Enter netuid [default 0]: ") or 0),
+            funding_key=input("Enter funding_key: "),
+            funding_modifier=float(input("Enter modifier [default 15COM]: ") or 15),
+        )
 
     def remove_miner_key(self, key_name: str, miner_keypath: Path):
         self.miner_key_dict.pop(key_name, None)
@@ -218,131 +333,27 @@ class BaseMiner(ABC):
         self._save_miner_keys(miner_keypath)
 
     def _save_miner_keys(self, miner_keypath: Path):
-        miner_keypath.write_text(json.dumps(self.miner_key_dict), encoding="utf-8")
+        miner_keypath.write_text(json.dumps(self.miner_key_dict, indent=4), encoding="utf-8")
 
-    def load_miner_keys(self, miner_keypath: Path):
-        self.miner_key_dict = json.loads(miner_keypath.read_text(encoding="utf-8"))
-
-    def get_keypair(self, key_name: str):
+    def get_keypair(self, key_name: str) -> Keypair:
         key_folder_path = Path(self.module_config.key_folder_path)
         json_data = json.loads((key_folder_path / f"{key_name}.json").read_text(encoding='utf-8'))["data"]
         key_data = json.loads(json_data)
         return Keypair(key_data["private_key"], key_data["public_key"], key_data["ss58_address"])
 
-    def register_miner(self, key_name: str, external_address: str, port: int, subnet: str, min_stake: int, metadata: str):
-        address = f"{external_address}:{port}"
-        keypair = self.get_keypair(key_name)
-        result = comx.register_module(keypair, key_name, address, subnet, min_stake, metadata)
-        return result.extrinsic
-
-    def serve_miner(
-        self,
-        module_name: str, 
-        key_name: str, 
-        host_address: str, 
-        external_address: str,
-        port: int,
-        subnet: str,
-        min_stake: int,
-        metadata: str,
-        register: bool = False
-    ):
-        self.add_route(module_name)
+    def register_miner(self, miner_config: MinerConfig):
+        command = f"bash modules/setup_miners.sh {miner_config.miner_name} {miner_config.miner_keypath} {miner_config.external_address} {miner_config.miner_port} {miner_config.stake} {miner_config.netuid} {miner_config.funding_key} {miner_config.funding_modifier}"
+        result = subprocess.run(command, shell=True, check=True, capture_output=True, text=True)
+        logger.info(result.stdout)
+        logger.info(result.stderr)
+        
+    def serve_miner(self, miner_config: MinerConfig, register: bool = False):
+        self.add_route(miner_config.module_name)
         if register:
-            self.register_miner(key_name, external_address, port, subnet, min_stake, metadata)
-            logger.info(f"Registered {key_name} at {external_address}:{port}")
-        self.run_server(host_address, port)
+            self.register_miner(miner_config)
+            logger.info(f"Registered {miner_config.miner_name} at {miner_config.external_address}:{miner_config.miner_port}")
+        self.run_server(miner_config.miner_host, miner_config.miner_port)
 
     @abstractmethod
     def process(self, miner_request: MinerRequest) -> Any:
-        """Process a request made to the module."""
-        
-
-class BaseModule(BaseModel):
-    module_config: ModuleConfig = Field(default_factory=ModuleConfig)
-    __pydantic_fields_set__ = {"module_config"}
-    
-    def __init__(self, module_config: ModuleConfig):
-        self.init_module(module_config)
-        self.module_config = module_config
-        
-    def init_module(self, module_config: ModuleConfig):
-        if os.path.exists(module_config.module_path):
-            return
-        if not os.path.exists(module_config.module_path):
-            os.makedirs(module_config.module_path)
-            self.install_module(module_config)
-        
-    def check_public_key(self):
-        public_key_path = Path("data/public_key.pub")
-        if Path(public_key_path).exists():
-            pubkey = Path(public_key_path).read_text(encoding="utf-8")
-            print(pubkey)
-            pubkey_input = input("Public key exists. Do you want to overwrite it? (y/n) ")
-            if pubkey_input.lower != "y" or pubkey_input != "" or pubkey_input.lower() != "yes":
-                return pubkey
-            else:
-                public_key_path.unlink()
-
-    def get_public_key(self, module_config: ModuleConfig, key_name: str = "public_key"):
-        public_key = requests.get(f"{module_config.module_url}/modules/{key_name}", timeout=30).text
-        if not os.path.exists("data"):
-            os.makedirs("data")
-        self.check_public_key()
-        public_key_path = "data/public_key.pem"
-        with open(public_key_path, "w", encoding="utf-8") as f:
-            f.write(public_key)
-        return public_key
-        
-    def check_for_existing_module(self, module_config: ModuleConfig):
-        module_setup_path = Path(f"{module_config.module_path}/setup_{module_config.module_name}.py")
-        if module_setup_path.exists():
-            module = module_setup_path.read_text(encoding="utf-8")
-            print(module)
-            module_input = input("Module exists. Do you want to overwrite it? (y/n) ")
-            if module_input.lower != "y" or module_input != "" or module_input.lower() != "yes":
-                return module_setup_path.read_text(encoding="utf-8")
-            else:
-                self.remove_module(module_config)
-                
-    def get_module(self, module_config: ModuleConfig):
-        module = requests.get(f"{module_config.module_url}{module_config.module_endpoint}", timeout=30).text
-        module = self.from_base64(module)
-        module_setup_path = Path(f"{module_config.module_path}/setup_{module_config.module_name}.py")
-        self.check_for_existing_module(module_config)
-        
-        if not os.path.exists("modules"):
-            os.makedirs("modules")
-        if not os.path.exists(module_config.module_path):
-            os.makedirs(module_config.module_path)
-
-        with open(module_setup_path, "w", encoding="utf-8") as f:
-            f.write(module)
-        return module
-
-    def from_base64(self, data):
-        return base64.b64decode(data).decode("utf-8")
-    
-    def to_base64(self, data):
-        return base64.b64encode(data.encode("utf-8"))
-    
-    def remove_module(self, module_config: ModuleConfig):
-        os.removedirs(module_config.module_path)
-        
-    def save_module(self, module_config: ModuleConfig, module_data):
-        with open(f"{module_config.module_path}/setup_{module_config.module_name}.py", "w", encoding="utf-8") as f:
-            f.write(module_data)
-
-    def setup_module(self, module_config: ModuleConfig):
-        command = f"python {module_config.module_path}/setup_{module_config.module_name}.py"
-        subprocess.run(command, shell=True, check=True)
-        command = f"bash {module_config.module_path}/install_{module_config.module_name}.sh"
-        subprocess.run(command, shell=True, check=True)
-
-    def update_module(self, module_config: ModuleConfig):
-        self.install_module(module_config)
-
-    def install_module(self, module_config):
-        self.get_module(module_config)
-        self.setup_module(module_config)
-     
+        """Process a request made to the module."""     
