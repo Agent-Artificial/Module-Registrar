@@ -102,8 +102,8 @@ class SeamlessTranslator:
             raise FileNotFoundError(f"File {in_file} not found")
 
         input_file = Path(in_file)
-        output_text = Path(f"modules/translation/out/{input_file.stem}.txt")
-        output_audio = Path(f"modules/translation/out/{input_file.stem}.wav")
+        output_text_path = Path(in_file.replace("/in/", "/out/")).with_suffix(".txt")
+        output_audio_path = Path(in_file.replace("/in/", "/out/")).with_suffix(".wav")
         
         task_str: str = self.task_strings[task_string]
         if not task_str:
@@ -135,16 +135,16 @@ class SeamlessTranslator:
 
             if speech_output:
                 torchaudio.save(
-                    uri=output_audio,
+                    uri=output_audio_path,
                     src=speech_output.audio_wavs[0][0].to(torch.float32).cpu(),
                     sample_rate=speech_output.sample_rate,
                 )
             if text_output:
-                output_text.write_text(
+                output_text_path.write_text(
                     data=str(object=text_output[0]), encoding="utf-8"
                 )
 
             logger.info("Translated target file")
 
-            return text_output, output_audio
+            return text_output[0], output_audio_path
 

@@ -1,4 +1,5 @@
-import base64
+import shutil
+import requests
 from pydantic import Field
 from dotenv import load_dotenv
 
@@ -39,31 +40,40 @@ class TranslationMiner(BaseMiner):
     def __init__(self):
         super().__init__(miner_settings, translation_settings)
         self.add_route("translation")
+        
+    def get_output(self, audio_request_path: str):
+        get_url = "https://transdev-cellium.ngrok.app/output/output.wav"
+        response = requests.get(get_url)
+        with open(audio_request_path, "wb") as f:
+            f.write(response.content)
+        return audio_request_path
+        
     
     def process(self, request: TranslationRequest):
         text_request = "modules/translation/in/text_request.txt"
         audio_request = "modules/translation/in/audio_request.wav"
         request_path = ""
+        
         if request.data["task_string"].startswith("speech"):
-            decoded_audio = base64.b64decode(request.data["input"])
-            with open(audio_request, "wb") as f:
-                f.write(decoded_audio.decode("utf-8"))
-            request_path = decoded_audio
+            shutil.copy("modules/translation/out/output.wav", audio_request)
+            request_path = self.get_output(audio_request)
+            
         if request.data["task_string"].startswith("text"):
             with open(text_request, "w", encoding="utf-8") as f:
                 f.write(request.data["input"])
+                
             request_path = text_request
-        output_text, output_audio = translator.translation_inference(
+            
+        output_text, output_audio_path = translator.translation_inference(
             in_file=request_path,
             source_langauge=request.data["source_language"].title(),
             target_languages=[request.data["target_language"].title()],
             task_string=request.data["task_string"]
         )
         if request.data["task_string"].endswith("2speech"):
-            with open(output_audio, "rb") as f:
-                return base64.b64encode(f.read()).decode("utf-8")
+            return output_audio_path
         if request.data["task_string"].endswith("2text"):
-            return str(output_text)
+            return output_text
 
 
 if __name__ == "__main__":

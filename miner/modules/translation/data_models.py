@@ -294,7 +294,10 @@ class BaseMiner(ABC):
     def add_route(self, module_name: str):
         @self.router.post(f"/modules/{module_name}/process")
         def process_request(request: MinerRequest):
-            return self.process(request)
+            try:
+                return self.process(request)
+            except Exception as e:
+                return {"error": str(e)}
         app.include_router(self.router)
 
     @staticmethod
