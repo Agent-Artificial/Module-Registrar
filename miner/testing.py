@@ -10,7 +10,7 @@ class TranslationRequest(BaseModel):
 
 
 def send():
-    infile = "modules/translation/in/german_test_data.wav"
+    infile = "modules/translation/in/audio_request.wav"
     outfile = "modules/translation/out/audio_request.txt"
     
     with open(infile, "rb") as f:
@@ -20,8 +20,8 @@ def send():
         "data": {
             "input": audio_data,
             "task_string": "speech2text",
-            "source_language": "german",
-            "target_language": "english"
+            "source_language": "english",
+            "target_language": "spanish"
         }
     }
     
@@ -29,5 +29,6 @@ def send():
         "http://127.0.0.1:4269/modules/translation/process", json=request, timeout=30
     )
     print(response.text)
+
 
 send()

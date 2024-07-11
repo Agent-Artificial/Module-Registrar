@@ -68,15 +68,15 @@ class TranslationMiner(BaseMiner):
             
         output_text, output_audio_path = translator.translation_inference(
             in_file=request_path,
-            source_langauge=request.data["source_language"].title(),
+            source_language=request.data["source_language"].title(),
             target_languages=[request.data["target_language"].title()],
             task_string=request.data["task_string"]
         )
-        if request.data["task_string"].endswith("2speech"):
+        if request.data["task_string"].endswith("speech"):
             with open(output_audio_path, "rb") as f:
                 return base64.b64encode(f.read()).decode("utf-8")
                 
-        if request.data["task_string"].endswith("2text"):
+        if request.data["task_string"].endswith("text"):
             return output_text
 
 

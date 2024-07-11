@@ -69,7 +69,7 @@ class SeamlessTranslator:
         return self.translation_inference(
             in_file=in_file,
             task_string=task_string,
-            source_langauge=source_language,
+            source_language=source_language,
             target_languages=target_lanaguages
         )
 
@@ -77,7 +77,7 @@ class SeamlessTranslator:
         self,
         in_file: Union[str, Path],
         task_string: str = "speech2text",
-        source_langauge: Optional[str] = "English",
+        source_language: Optional[str] = "English",
         target_languages: List[str] = ["French"],
     ) -> Tuple[Path, Path] | None:
         """
@@ -102,8 +102,8 @@ class SeamlessTranslator:
             raise FileNotFoundError(f"File {in_file} not found")
 
         input_file = Path(in_file)
-        output_text_path = Path(f"modules/translation/out/{input_file.name}.text")
-        output_audio_path = Path(f"modules/translation/out/{input_file.name}.wav")
+        output_text_path = Path(f"modules/translation/out/{input_file.name}")
+        output_audio_path = Path(f"modules/translation/out/{input_file.name}")
         
         task_str: str = self.task_strings[task_string]
         if not task_str:
@@ -121,14 +121,14 @@ class SeamlessTranslator:
                 text_output, speech_output = self.translator.predict(
                     input=str(input_file.read_text(encoding="utf-8")),
                     task_str=task_str,
-                    src_lang=self.target_languages[source_langauge],
+                    src_lang=self.target_languages[source_language],
                     tgt_lang=tgt_lang,
                     )
             if task_str.startswith("s"):
                 text_output, speech_output = self.translator.predict(
                     input=str(input_file),
                     task_str=task_str,
-                    src_lang=self.target_languages[source_langauge],
+                    src_lang=self.target_languages[source_language],
                     tgt_lang=tgt_lang,
                 )
             logger.info(f"Translated text in {tgt_lang}: {text_output[0]}")
