@@ -51,15 +51,14 @@ class TranslationMiner(BaseMiner):
         text_request_path = "modules/translation/in/text_request.txt"
         audio_request_path = "modules/translation/in/audio_request.wav"
         request_path = ""
-        
-        if request.data["task_string"].startswith("speech"):
-            get_audio_path = "http://localhost:5757/static/audio/audio_request.wav"
-            headers = {"Authorization": f"Bearer {os.getenv('TRANSLATION_CREDS')}"}
-            response = requests.get(get_audio_path, timeout=30).content
-            logger.debug(response)
-            audio = AudioSegment.from_file(io.BytesIO(response), format="wav")
-            audio.export(audio_request_path, format="wav")
-            request_path = audio_request_path
+        try:
+            if request.data["task_string"].startswith("speech"):
+                audio_data = base64.b64decode(request.data["input"].encode("utf-8"))
+                audio = AudioSegment.from_file(io.BytesIO(audio_data), format="wav")
+                audio.export(audio_request_path, format="wav")
+                request_path = audio_request_path
+        except Exception as e:
+            logger.error(e)
             
         if request.data["task_string"].startswith("text"):
             with open(text_request_path, "w", encoding="utf-8") as f:
@@ -74,7 +73,9 @@ class TranslationMiner(BaseMiner):
             task_string=request.data["task_string"]
         )
         if request.data["task_string"].endswith("2speech"):
-            return output_audio_path
+            with open(output_audio_path, "rb") as f:
+                return base64.b64encode(f.read()).decode("utf-8")
+                
         if request.data["task_string"].endswith("2text"):
             return output_text
 
