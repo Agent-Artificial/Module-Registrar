@@ -10,6 +10,8 @@ from pydantic import BaseModel, Field
 from typing import Dict, Union, Optional, Any, List
 from abc import ABC, abstractmethod
 from fastapi import APIRouter, FastAPI
+from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 from substrateinterface.keypair import Keypair
 from communex._common import get_node_url
 from communex.client import CommuneClient
@@ -17,6 +19,16 @@ from communex.client import CommuneClient
 comx = CommuneClient(get_node_url())
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+app.mount("/in", StaticFiles(directory="modules/translation/in"), name="in")
+app.mount("/out", StaticFiles(directory="modules/translation/out"), name="out")
 
 TASK_STRINGS = {
     "speech2text": "s2tt",

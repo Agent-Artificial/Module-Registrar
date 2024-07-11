@@ -5,6 +5,11 @@ from dotenv import load_dotenv
 
 from .data_models import TranslationRequest, MinerConfig, ModuleConfig, BaseMiner
 from .translation import SeamlessTranslator
+from pydub import AudioSegment
+from loguru import logger
+import base64
+import os
+import io
 
 
 load_dotenv()
@@ -40,29 +45,27 @@ class TranslationMiner(BaseMiner):
     def __init__(self):
         super().__init__(miner_settings, translation_settings)
         self.add_route("translation")
-        
-    def get_output(self, audio_request_path: str):
-        get_url = "https://transdev-cellium.ngrok.app/output/output.wav"
-        response = requests.get(get_url)
-        with open(audio_request_path, "wb") as f:
-            f.write(response.content)
-        return audio_request_path
-        
+               
     
     def process(self, request: TranslationRequest):
-        text_request = "modules/translation/in/text_request.txt"
-        audio_request = "modules/translation/in/audio_request.wav"
+        text_request_path = "modules/translation/in/text_request.txt"
+        audio_request_path = "modules/translation/in/audio_request.wav"
         request_path = ""
         
         if request.data["task_string"].startswith("speech"):
-            shutil.copy("modules/translation/out/output.wav", audio_request)
-            request_path = self.get_output(audio_request)
+            get_audio_path = "http://localhost:5757/static/audio/audio_request.wav"
+            headers = {"Authorization": f"Bearer {os.getenv('TRANSLATION_CREDS')}"}
+            response = requests.get(get_audio_path, timeout=30).content
+            logger.debug(response)
+            audio = AudioSegment.from_file(io.BytesIO(response), format="wav")
+            audio.export(audio_request_path, format="wav")
+            request_path = audio_request_path
             
         if request.data["task_string"].startswith("text"):
-            with open(text_request, "w", encoding="utf-8") as f:
+            with open(text_request_path, "w", encoding="utf-8") as f:
                 f.write(request.data["input"])
                 
-            request_path = text_request
+            request_path = text_request_path
             
         output_text, output_audio_path = translator.translation_inference(
             in_file=request_path,

@@ -102,8 +102,8 @@ class SeamlessTranslator:
             raise FileNotFoundError(f"File {in_file} not found")
 
         input_file = Path(in_file)
-        output_text_path = Path(in_file.replace("/in/", "/out/")).with_suffix(".txt")
-        output_audio_path = Path(in_file.replace("/in/", "/out/")).with_suffix(".wav")
+        output_text_path = Path(f"modules/translation/out/{input_file.name}.text")
+        output_audio_path = Path(f"modules/translation/out/{input_file.name}.wav")
         
         task_str: str = self.task_strings[task_string]
         if not task_str:
