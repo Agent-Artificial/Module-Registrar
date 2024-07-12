@@ -56,6 +56,7 @@ class WeightManagerResponse(BaseModel):
 
 
 class RegisterRequest(BaseModel):
+    request_type: str
     validator_id: int
     public_key: str
     weights: list[int]

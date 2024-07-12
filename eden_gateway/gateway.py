@@ -6,11 +6,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from eden_gateway.weight_manager import (
     WeightManager,
     WeightManagerResponse,
+    RegisterRequest,
     deposit_weights,
     average_weights,
     transmit_weights,
 )
 from eden_gateway.weight_manager import app as weight_router
+from pydantic import BaseModel
+from typing import Callable, Generic, TypeVar, Dict
 import uvicorn
 
 app = FastAPI()
@@ -22,28 +25,52 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+T = TypeVar("T", bound=Callable)
+
+
+class RouteMap(BaseModel, Generic[T]):
+    routes: dict[str, Callable]
+    route: Callable
+
+    def __init__subclass__(self, chosen_route: T, registry_request: RegisterRequest):
+        self.routes = {chosen_route.__name__: chosen_route(registry_request)}
+        self.route = self.routes[chosen_route.__name__]
+
+    def execute(self, *args):
+        return self.route
+
+
+deposit = RouteMap(chosen_route=deposit_weights, registry_request=RegisterRequest)
 
 app.add_api_route(
     path="deposit_weights",
     methods=["POST"],
     name="deposit_weights",
     include_in_schema=False,
-    endpoint=deposit_weights(),
+    endpoint=weight_router(
+        scope=deposit.execute(
+            registry_request=RegisterRequest(
+                request_type, validator_id, weights, public_key
+            )
+        ),
+        recieve=RegisterRequest,
+        send=WeightManagerResponse,
+    ),
 )
 
 app.add_route(
-    route=weight_router,
     path="average_weights",
     methods=["POST"],
     name="average_weights",
     include_in_schema=False,
+    endpoint=average_weights(),
 )
 app.add_route(
-    route=transmit_weights,
     path="transmit_weights",
     methods=["POST"],
     name="transmit_weights",
     include_in_schema=False,
+    endpoint=transmit_weights(),
 )
 
 
