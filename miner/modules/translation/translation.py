@@ -146,5 +146,5 @@ class SeamlessTranslator:
 
             logger.info("Translated target file")
 
-            return text_output[0], output_audio_path
+            return text_output, output_audio_path
 
