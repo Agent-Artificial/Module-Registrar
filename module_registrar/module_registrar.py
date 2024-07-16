@@ -1,25 +1,23 @@
 import os
 import json
-import jsonpickle
 import base64
 from pathlib import Path
-from typing import Dict, List, Union
 from dotenv import load_dotenv
-from cryptography.hazmat.primitives import serialization
 from loguru import logger
 from module_registrar.utilities.encryption import (
     derive_rsa_keypair_with_password,
-   # encrypt_with_rsa_file,
-   # decrypt_with_rsa_file,
-    encode_ss58_address,
     PUBLIC_KEY,
     PRIVATE_KEY
 )
 
 load_dotenv()
 
+
 class ModuleRegistrar:
     def __init__(self, module_name, target_modules_path, module_storage_path):
+        self.module_name = module_name
+        self.target_modules_path = target_modules_path
+        self.module_storage_path = module_storage_path
         self.setup_file_paths(module_name, target_modules_path, module_storage_path)
         self.load_registry()
         self.ignore_list = (".venv", "data/", ".", "__py", "node_modules")
@@ -52,7 +50,7 @@ class ModuleRegistrar:
             derive_rsa_keypair_with_password()
 
     def register(self, name):
-        self.registry[name] = self.module_setup_path.read_text() # self.encrypt_with_rsa_file(self.module_setup_path.read_text(encoding="utf-8"))
+        self.registry[name] = self.module_setup_path.read_text()
         self.save_registry()
 
     def save_registry(self):
@@ -64,8 +62,7 @@ class ModuleRegistrar:
         self.registry_path.write_text(json.dumps(self.registry, indent=4), encoding="utf-8")
 
     def get(self, name):
-        encoded_value = self.registry.get(name)
-        return encoded_value
+        return self.registry.get(name)
 
     def add_module(self, name, module_path):
         logger.debug(module_path)
@@ -125,6 +122,7 @@ class ModuleRegistrar:
         lines = [
             "import os\n",
             "import base64\n",
+            "import subprocess\n\n",
             f"folder_path = f'modules/{name}'\n\n",
             "file_data = [\n",
             *[f"    ('{path}', '{content}'),\n" for path, content in file_data],
@@ -134,16 +132,11 @@ class ModuleRegistrar:
             "    os.makedirs(os.path.dirname(full_path), exist_ok=True)\n",
             "    with open(full_path, 'wb') as f:\n",
             "        f.write(base64.b64decode(encoded_content))\n",
-            "    print(f'Created: {full_path}')\n"
+            "    print(f'Created: {full_path}')\n",
+            f"command = ['bash', 'modules/{name}/install_{name}.sh']\n",
+            "subprocess.run(command, check=True)\n"
         ]
         return "".join(lines)
-
-    #def encrypt_with_rsa_file(self, data):
-    #    return encrypt_with_rsa_file(data=data)
-    #
-#
-    #def decrypt_with_rsa_file(self, data):
-    #    return decrypt_with_rsa_file(data=data)
 
     @staticmethod
     def save_key(key_path, key_data):
@@ -167,7 +160,7 @@ def cli():
     }
 
     while True:
-        print("\nModule Registry:", registrar.registry)
+        print("\nModule Registry:", registrar.registry.keys())
         print("\nOptions:")
         for key, (description, _) in options.items():
             print(f"{key}. {description}")
@@ -177,6 +170,7 @@ def cli():
             options[choice][1]()
         else:
             print("Invalid choice. Please try again.")
+
 
 if __name__ == "__main__":
     cli()

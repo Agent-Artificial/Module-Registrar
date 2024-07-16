@@ -29,7 +29,6 @@ def update_repository():
             bt.logging.success(f"current version: {__version__}, new version: {new_version}")
             if __version__ != new_version:
                 try:
-                    # subprocess.run(["python3", "transcription/utils/download.py"], check=True)
                     subprocess.run(["python3", "-m", "pip", "install", "-e", "."], check=True)
                     os._exit(1)
                 except subprocess.CalledProcessError:

@@ -5,8 +5,8 @@ import wave
 
 class AudioManager:
     def __init__(self):
-        self.input_path = "module_registrar/modules/whisper/in/audio_request.wav"
-        self.output_path = "module_registrar/modules/whisper/out/audio_request.wav"
+        self.input_path = f"module_registrar/{os.getenv('MODULE_PATH')}/in/audio_request.wav"
+        self.output_path = f"module_registrar/{os.getenv('MODULE_PATH')}/out/audio_request.wav"
 
     def encode_audio(self, audio_path):
         """Encode audio file to base64 string."""

@@ -5,7 +5,8 @@ from loguru import logger
 from abc import ABC, abstractmethod
 from typing import Dict, Optional, Any, List
 from pydantic import BaseModel
-from fastapi import  APIRouter
+from fastapi import  APIRouter, FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from communex.client import CommuneClient
 from communex._common import get_node_url
 from communex.compat.key import Keypair
@@ -13,6 +14,17 @@ from base.base_module import ModuleConfig
 
 comx = CommuneClient(get_node_url())
 
+
+app=FastAPI()
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class MinerRequest(BaseModel):
     data: Optional[Any] = None
