@@ -13,9 +13,10 @@ from pydub import AudioSegment
 
 from .data_models import TARGET_LANGUAGES, TASK_STRINGS, TranslationRequest, TranslationConfig
 
+translation_config = TranslationConfig()
 
 class Translation:
-    def __init__(self, translation_config: TranslationConfig):
+    def __init__(self):
         """
         Initializes a new instance of the Translation class.
 

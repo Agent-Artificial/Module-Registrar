@@ -113,9 +113,8 @@ class ModuleRegistrar:
         logger.info(f"Folder path: {folder_path}")
         file_data = self.walk_and_encode(folder_path)
         script_content = self.create_script_content(name, file_data)
-        encoded_content = base64.b64encode(script_content.encode('utf-8')).decode('utf-8') 
         self.ensure_directory_exists(self.module_setup_path.parent)
-        self.module_setup_path.write_text(encoded_content, encoding='utf-8')
+        self.module_setup_path.write_text(script_content, encoding='utf-8')
 
     @staticmethod
     def create_script_content(name, file_data):

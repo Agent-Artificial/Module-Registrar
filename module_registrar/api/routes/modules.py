@@ -27,6 +27,19 @@ def get_module(module_name: str):
     else:
         return {"error": f"Module not found.\nAvailable modules: {module_registrar.list_modules()}"}
     
+@module_router.get("/{module_name}/sample_request")
+def get_sample_request(module_name: str):
+    module_name = module_name.lower()
+    return {
+        "data": {
+            "input": "The cat is black",
+            "task_string": "text2text",
+            "source_lanaguage": "English",
+            "target_lanaguages": ["French"]
+        }
+    }
+    
+    
 @module_router.get("/public_key")
 def get_public_key():
     registrar = get_module_registrar("public_key")
